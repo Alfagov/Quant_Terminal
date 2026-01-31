@@ -4,7 +4,7 @@ use validator::Validate;
 const MAX_N: usize = 100_000;
 const MAX_K: usize = 1000;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Validate)]
 pub struct Params {
     #[validate(range(min = 1, max = 100000))]
     pub n: usize,

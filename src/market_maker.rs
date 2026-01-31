@@ -12,7 +12,7 @@ pub enum Action {
 
 const MAX_STEPS: usize = 10_000;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Validate)]
 pub struct Params {
     #[validate(range(min = 0.0, max = 10000.0))]
     pub v_h: f64,

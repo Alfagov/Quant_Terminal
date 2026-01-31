@@ -15,7 +15,7 @@ pub enum MotionType {
     Geometric,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Validate)]
 pub struct Params {
     #[validate(range(min = 0.0))]
     pub s0: f64,

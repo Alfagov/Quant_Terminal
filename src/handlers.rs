@@ -3,14 +3,23 @@ use axum::Form;
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Response};
 use serde::{Deserialize, Serialize};
+use tokio::task::JoinError;
 use validator::Validate;
 use crate::charts::{create_dataset, create_dataset_with_dash, render_chart, Dataset};
 use crate::{binomial_poisson, brownian_motion, market_maker};
+use crate::brownian_motion::SimulationResult;
 
 pub enum AppError {
     ValidationError(String),
     TemplateError(String),
     InternalError(String),
+}
+
+impl From<JoinError> for AppError {
+    fn from(err: JoinError) -> Self {
+        // We convert the JoinError to a string to store it in our InternalError
+        AppError::InternalError(err.to_string())
+    }
 }
 
 impl IntoResponse for AppError {
@@ -181,9 +190,10 @@ pub async fn simulate_glosten(
         .validate_limits()
         .map_err(AppError::ValidationError)?;
 
-    // Run simulation
-    let mut sim = market_maker::Simulation::new(params.seed);
-    let rounds = sim.run(&params);
+    let rounds = tokio::task::spawn_blocking(move || {
+        let mut sim = market_maker::Simulation::new(params.seed);
+        return sim.run(&params);
+    }).await?;
 
     // Calculate metrics
     let (informed_pnl, noise_pnl) = market_maker::cumulative_pnl(&rounds);
@@ -393,7 +403,7 @@ pub async fn simulate_binomial_poisson(
         .validate_limits()
         .map_err(AppError::ValidationError)?;
 
-    let results = binomial_poisson::simulate(&params);
+    let results = tokio::task::spawn_blocking(move || binomial_poisson::simulate(&params)).await?;
     let (tv, max_err, mse, kl) = binomial_poisson::calculate_metrics(&results);
 
     let k_values: Vec<usize> = results.iter().map(|r| r.k).collect();
@@ -538,7 +548,8 @@ pub async fn simulate_brownian_motion(
         .validate_limits()
         .map_err(AppError::ValidationError)?;
 
-    let result = brownian_motion::run(&params);
+    let result = tokio::task::spawn_blocking(move || brownian_motion::run(&params))
+        .await?;
 
     // Generate stats
     let motion_type_str = match motion_type {
