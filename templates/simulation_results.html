@@ -2,8 +2,52 @@
   <!-- Stats Cards -->
   {{ stats_html|safe }}
 
-  <!-- Charts -->
-  {% for chart in charts %}
-  {{ chart|safe }}
-  {% endfor %}
+  <!-- Primary Charts -->
+  <div class="space-y-6">
+    {% for chart in charts %}
+    {{ chart|safe }}
+    {% endfor %}
+  </div>
+
+  <!-- Greeks Charts (Collapsible) -->
+  {% if !greeks_charts.is_empty() %}
+  <div class="space-y-4">
+    <!-- Toggle Button -->
+    <div class="flex justify-center">
+      <button onclick="toggleGreekCharts()"
+              id="greek-charts-toggle-btn"
+              class="group flex items-center gap-2 px-6 py-2 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-full text-[10px] uppercase tracking-widest text-slate-400 hover:text-white transition-all">
+        <span>Show Greeks Graphs</span>
+        <svg id="greek-charts-chevron" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Collapsible Container -->
+    <div id="greek-charts-container" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
+      {% for chart in greeks_charts %}
+      {{ chart|safe }}
+      {% endfor %}
+    </div>
+  </div>
+
+  <script>
+    function toggleGreekCharts() {
+      const container = document.getElementById('greek-charts-container');
+      const btnText = document.querySelector('#greek-charts-toggle-btn span');
+      const chevron = document.getElementById('greek-charts-chevron');
+
+      if (container.classList.contains('hidden')) {
+        container.classList.remove('hidden');
+        btnText.textContent = 'Hide Greeks Graphs';
+        chevron.classList.add('rotate-180');
+      } else {
+        container.classList.add('hidden');
+        btnText.textContent = 'Show Greeks Graphs';
+        chevron.classList.remove('rotate-180');
+      }
+    }
+  </script>
+  {% endif %}
 </div>

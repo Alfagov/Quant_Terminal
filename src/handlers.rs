@@ -142,6 +142,7 @@ pub struct BlackScholesStatsTemplate {
 pub struct SimulationResultsTemplate {
     pub stats_html: String,
     pub charts: Vec<String>,
+    pub greeks_charts: Vec<String>,
 }
 
 // Static file handlers
@@ -326,7 +327,7 @@ pub async fn simulate_black_scholes(
         .map(|t| format!("{:.2}", t))
         .collect();
 
-    let charts = vec![
+    let charts_vec = vec![
         // 1. Price + Intrinsic + Time Value vs Spot
         render_chart(
             "priceChart",
@@ -363,6 +364,9 @@ pub async fn simulate_black_scholes(
             "Value ($)",
             true,
         )?,
+    ];
+
+    let greeks_charts_vec = vec![
         // 2. Delta vs Spot
         render_chart(
             "deltaChart",
@@ -520,7 +524,8 @@ pub async fn simulate_black_scholes(
 
     let bs_result_template = SimulationResultsTemplate {
         stats_html,
-        charts,
+        charts: charts_vec,
+        greeks_charts: greeks_charts_vec,
     };
 
     let html = bs_result_template.render()?;
@@ -756,10 +761,10 @@ pub async fn simulate_glosten(
         )?,
     ];
 
-    // Render final result
     let result_template = SimulationResultsTemplate {
         stats_html,
         charts,
+        greeks_charts: vec![],
     };
 
     let html = result_template.render()?;
@@ -872,12 +877,11 @@ pub async fn simulate_binomial_poisson(
             "k (Number of Successes)",
             "Absolute Error",
             false,
-        )?,
-    ];
-
+        )?];
     let result_template = SimulationResultsTemplate {
         stats_html,
         charts,
+        greeks_charts: vec![],
     };
 
     let html = result_template.render()?;
@@ -1198,6 +1202,7 @@ pub async fn simulate_brownian_motion(
     let result_template = SimulationResultsTemplate {
         stats_html,
         charts,
+        greeks_charts: vec![],
     };
 
     let html = result_template.render()?;

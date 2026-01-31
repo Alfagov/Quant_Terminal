@@ -1,265 +1,229 @@
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full animate-fade-in">
-    <!-- Option Price -->
-    <div
-            class="glass-panel p-4 border border-slate-700 relative group hover:border-emerald-500/30 transition-all"
-    >
-        <div class="flex justify-between items-start mb-2">
-            <div
-                    class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
-            >
-                > Option_Price
+<div class="w-full animate-fade-in space-y-4">
+    <!-- Primary Stats (Always Visible) -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <!-- Option Price -->
+        <div class="glass-panel p-4 border border-slate-700 relative group hover:border-emerald-500/30 transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+                    > Option_Price
+                </div>
+            </div>
+            <div class="text-2xl text-emerald-400 font-mono font-light">
+                ${{ price }}
+            </div>
+            <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between">
+                <span>TYPE:</span>
+                <span class="text-slate-500">{{ option_type }}</span>
             </div>
         </div>
-        <div class="text-2xl text-emerald-400 font-mono font-light">
-            ${{ price }}
+
+        <!-- Intrinsic -->
+        <div class="glass-panel p-4 border border-slate-700 relative group hover:border-blue-500/30 transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+                    > Intrinsic
+                </div>
+            </div>
+            <div class="text-2xl text-blue-400 font-mono font-light">
+                ${{ intrinsic_value }}
+            </div>
+            <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between">
+                <span>PAYOFF:</span>
+                <span class="text-slate-500">max(S−K, 0)</span>
+            </div>
         </div>
-        <div
-                class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
-        >
-            <span>TYPE:</span>
-            <span class="text-slate-500">{{ option_type }}</span>
+
+        <!-- Time Value -->
+        <div class="glass-panel p-4 border border-slate-700 relative group hover:border-purple-500/30 transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+                    > Time_Value
+                </div>
+            </div>
+            <div class="text-2xl text-purple-400 font-mono font-light">
+                ${{ time_value }}
+            </div>
+            <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between">
+                <span>EXTRINSIC:</span>
+                <span class="text-slate-500">V − Intrinsic</span>
+            </div>
+        </div>
+
+        <!-- Moneyness -->
+        <div class="glass-panel p-4 border border-slate-700 relative group hover:border-blue-500/30 transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+                    > Moneyness
+                </div>
+            </div>
+            <div class="text-xl text-white font-mono font-light">
+                {{ moneyness }}
+            </div>
+            <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between">
+                <span>S/K:</span>
+                <span class="text-slate-500">{{ moneyness_ratio }}</span>
+            </div>
         </div>
     </div>
 
-    <!-- Intrinsic -->
-    <div
-            class="glass-panel p-4 border border-slate-700 relative group hover:border-blue-500/30 transition-all"
-    >
-        <div class="flex justify-between items-start mb-2">
-            <div
-                    class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
-            >
-                > Intrinsic
-            </div>
-        </div>
-        <div class="text-2xl text-blue-400 font-mono font-light">
-            ${{ intrinsic_value }}
-        </div>
-        <div
-                class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
-        >
-            <span>PAYOFF:</span>
-            <span class="text-slate-500">max(S−K, 0)</span>
-        </div>
+    <!-- Toggle Button -->
+    <div class="flex justify-center">
+        <button onclick="toggleGreeks()"
+                id="greeks-toggle-btn"
+                class="group flex items-center gap-2 px-6 py-2 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-full text-[10px] uppercase tracking-widest text-slate-400 hover:text-white transition-all">
+            <span>Show Greeks</span>
+            <svg id="greeks-chevron" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+        </button>
     </div>
 
-    <!-- Time Value -->
-    <div
-            class="glass-panel p-4 border border-slate-700 relative group hover:border-purple-500/30 transition-all"
-    >
-        <div class="flex justify-between items-start mb-2">
-            <div
-                    class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
-            >
-                > Time_Value
+    <!-- Collapsible Greeks Section -->
+    <div id="greeks-container" class="hidden grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in">
+        <!-- Delta -->
+        <div class="glass-panel p-4 border border-emerald-500/30 relative group hover:border-emerald-500/50 transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div class="text-[10px] text-emerald-500 uppercase tracking-widest font-bold">
+                    > Delta (Δ)
+                </div>
+            </div>
+            <div class="text-2xl text-emerald-400 font-mono font-light">
+                {{ delta }}
+            </div>
+            <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between">
+                <span>∂V/∂S:</span>
+                <span class="text-emerald-500/70">Hedge Ratio</span>
             </div>
         </div>
-        <div class="text-2xl text-purple-400 font-mono font-light">
-            ${{ time_value }}
-        </div>
-        <div
-                class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
-        >
-            <span>EXTRINSIC:</span>
-            <span class="text-slate-500">V − Intrinsic</span>
-        </div>
-    </div>
 
-    <!-- Moneyness -->
-    <div
-            class="glass-panel p-4 border border-slate-700 relative group hover:border-blue-500/30 transition-all"
-    >
-        <div class="flex justify-between items-start mb-2">
-            <div
-                    class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
-            >
-                > Moneyness
+        <!-- Gamma -->
+        <div class="glass-panel p-4 border border-cyan-500/30 relative group hover:border-cyan-500/50 transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div class="text-[10px] text-cyan-500 uppercase tracking-widest font-bold">
+                    > Gamma (Γ)
+                </div>
+            </div>
+            <div class="text-2xl text-cyan-400 font-mono font-light">
+                {{ gamma }}
+            </div>
+            <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between">
+                <span>∂²V/∂S²:</span>
+                <span class="text-cyan-500/70">Convexity</span>
             </div>
         </div>
-        <div class="text-xl text-white font-mono font-light">
-            {{ moneyness }}
-        </div>
-        <div
-                class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
-        >
-            <span>S/K:</span>
-            <span class="text-slate-500">{{ moneyness_ratio }}</span>
-        </div>
-    </div>
 
-    <!-- Delta -->
-    <div
-            class="glass-panel p-4 border border-emerald-500/30 relative group hover:border-emerald-500/50 transition-all"
-    >
-        <div class="flex justify-between items-start mb-2">
-            <div
-                    class="text-[10px] text-emerald-500 uppercase tracking-widest font-bold"
-            >
-                > Delta (Δ)
+        <!-- Theta -->
+        <div class="glass-panel p-4 border border-orange-500/30 relative group hover:border-orange-500/50 transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div class="text-[10px] text-orange-500 uppercase tracking-widest font-bold">
+                    > Theta (Θ)
+                </div>
+            </div>
+            <div class="text-2xl text-orange-400 font-mono font-light">
+                {{ theta }}
+            </div>
+            <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between">
+                <span>∂V/∂t:</span>
+                <span class="text-orange-500/70">Per Day</span>
             </div>
         </div>
-        <div class="text-2xl text-emerald-400 font-mono font-light">
-            {{ delta }}
-        </div>
-        <div
-                class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
-        >
-            <span>∂V/∂S:</span>
-            <span class="text-emerald-500/70">Hedge Ratio</span>
-        </div>
-    </div>
 
-    <!-- Gamma -->
-    <div
-            class="glass-panel p-4 border border-cyan-500/30 relative group hover:border-cyan-500/50 transition-all"
-    >
-        <div class="flex justify-between items-start mb-2">
-            <div
-                    class="text-[10px] text-cyan-500 uppercase tracking-widest font-bold"
-            >
-                > Gamma (Γ)
+        <!-- Vega -->
+        <div class="glass-panel p-4 border border-purple-500/30 relative group hover:border-purple-500/50 transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div class="text-[10px] text-purple-500 uppercase tracking-widest font-bold">
+                    > Vega (ν)
+                </div>
+            </div>
+            <div class="text-2xl text-purple-400 font-mono font-light">
+                {{ vega }}
+            </div>
+            <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between">
+                <span>∂V/∂σ:</span>
+                <span class="text-purple-500/70">Per 1% Vol</span>
             </div>
         </div>
-        <div class="text-2xl text-cyan-400 font-mono font-light">
-            {{ gamma }}
-        </div>
-        <div
-                class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
-        >
-            <span>∂²V/∂S²:</span>
-            <span class="text-cyan-500/70">Convexity</span>
-        </div>
-    </div>
 
-    <!-- Theta -->
-    <div
-            class="glass-panel p-4 border border-orange-500/30 relative group hover:border-orange-500/50 transition-all"
-    >
-        <div class="flex justify-between items-start mb-2">
-            <div
-                    class="text-[10px] text-orange-500 uppercase tracking-widest font-bold"
-            >
-                > Theta (Θ)
+        <!-- Rho -->
+        <div class="glass-panel p-4 border border-slate-700 relative group hover:border-blue-500/30 transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+                    > Rho (ρ)
+                </div>
+            </div>
+            <div class="text-2xl text-blue-400 font-mono font-light">
+                {{ rho }}
+            </div>
+            <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between">
+                <span>∂V/∂r:</span>
+                <span class="text-slate-500">Per 1% Rate</span>
             </div>
         </div>
-        <div class="text-2xl text-orange-400 font-mono font-light">
-            {{ theta }}
-        </div>
-        <div
-                class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
-        >
-            <span>∂V/∂t:</span>
-            <span class="text-orange-500/70">Per Day</span>
-        </div>
-    </div>
 
-    <!-- Vega -->
-    <div
-            class="glass-panel p-4 border border-purple-500/30 relative group hover:border-purple-500/50 transition-all"
-    >
-        <div class="flex justify-between items-start mb-2">
-            <div
-                    class="text-[10px] text-purple-500 uppercase tracking-widest font-bold"
-            >
-                > Vega (ν)
+        <!-- Put-Call Parity -->
+        <div class="glass-panel p-4 border border-slate-700 relative group hover:border-emerald-500/30 transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+                    > Parity_Check
+                </div>
+            </div>
+            <div class="text-xl {{ parity_class }} font-mono font-light">
+                {{ parity_status }}
+            </div>
+            <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between">
+                <span>C−P−S+Ke⁻ʳᵀ:</span>
+                <span class="text-slate-500">{{ parity_residual }}</span>
             </div>
         </div>
-        <div class="text-2xl text-purple-400 font-mono font-light">
-            {{ vega }}
-        </div>
-        <div
-                class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
-        >
-            <span>∂V/∂σ:</span>
-            <span class="text-purple-500/70">Per 1% Vol</span>
-        </div>
-    </div>
 
-    <!-- Rho -->
-    <div
-            class="glass-panel p-4 border border-slate-700 relative group hover:border-blue-500/30 transition-all"
-    >
-        <div class="flex justify-between items-start mb-2">
-            <div
-                    class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
-            >
-                > Rho (ρ)
+        <!-- d1 -->
+        <div class="glass-panel p-4 border border-slate-700 relative group hover:border-blue-500/30 transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+                    > d₁
+                </div>
+            </div>
+            <div class="text-2xl text-white font-mono font-light">
+                {{ d1 }}
+            </div>
+            <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between">
+                <span>Φ(d₁):</span>
+                <span class="text-slate-500">{{ nd1 }}</span>
             </div>
         </div>
-        <div class="text-2xl text-blue-400 font-mono font-light">
-            {{ rho }}
-        </div>
-        <div
-                class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
-        >
-            <span>∂V/∂r:</span>
-            <span class="text-slate-500">Per 1% Rate</span>
-        </div>
-    </div>
 
-    <!-- Put-Call Parity -->
-    <div
-            class="glass-panel p-4 border border-slate-700 relative group hover:border-emerald-500/30 transition-all"
-    >
-        <div class="flex justify-between items-start mb-2">
-            <div
-                    class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
-            >
-                > Parity_Check
+        <!-- d2 -->
+        <div class="glass-panel p-4 border border-slate-700 relative group hover:border-blue-500/30 transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+                    > d₂
+                </div>
             </div>
-        </div>
-        <div class="text-xl {{ parity_class }} font-mono font-light">
-            {{ parity_status }}
-        </div>
-        <div
-                class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
-        >
-            <span>C−P−S+Ke⁻ʳᵀ:</span>
-            <span class="text-slate-500">{{ parity_residual }}</span>
-        </div>
-    </div>
-
-    <!-- d1 -->
-    <div
-            class="glass-panel p-4 border border-slate-700 relative group hover:border-blue-500/30 transition-all"
-    >
-        <div class="flex justify-between items-start mb-2">
-            <div
-                    class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
-            >
-                > d₁
+            <div class="text-2xl text-white font-mono font-light">
+                {{ d2 }}
             </div>
-        </div>
-        <div class="text-2xl text-white font-mono font-light">
-            {{ d1 }}
-        </div>
-        <div
-                class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
-        >
-            <span>Φ(d₁):</span>
-            <span class="text-slate-500">{{ nd1 }}</span>
-        </div>
-    </div>
-
-    <!-- d2 -->
-    <div
-            class="glass-panel p-4 border border-slate-700 relative group hover:border-blue-500/30 transition-all"
-    >
-        <div class="flex justify-between items-start mb-2">
-            <div
-                    class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
-            >
-                > d₂
+            <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between">
+                <span>Φ(d₂):</span>
+                <span class="text-slate-500">{{ nd2 }}</span>
             </div>
-        </div>
-        <div class="text-2xl text-white font-mono font-light">
-            {{ d2 }}
-        </div>
-        <div
-                class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
-        >
-            <span>Φ(d₂):</span>
-            <span class="text-slate-500">{{ nd2 }}</span>
         </div>
     </div>
 </div>
+
+<script>
+    function toggleGreeks() {
+        const container = document.getElementById('greeks-container');
+        const btnText = document.querySelector('#greeks-toggle-btn span');
+        const chevron = document.getElementById('greeks-chevron');
+
+        if (container.classList.contains('hidden')) {
+            container.classList.remove('hidden');
+            btnText.textContent = 'Hide Greeks';
+            chevron.classList.add('rotate-180');
+        } else {
+            container.classList.add('hidden');
+            btnText.textContent = 'Show Greeks';
+            chevron.classList.remove('rotate-180');
+        }
+    }
+</script>
