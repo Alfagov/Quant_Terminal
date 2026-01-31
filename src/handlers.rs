@@ -2,6 +2,7 @@ use askama::Template;
 use axum::Form;
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Response};
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinError;
 use validator::Validate;
@@ -618,39 +619,29 @@ pub async fn simulate_brownian_motion(
         })
         .collect();
 
-    // Calculate mean and CI
-    let transposed_values: Vec<Vec<f64>> = (0..times.len())
+    let num_time_steps = times.len();
+    let num_paths = result.paths.len();
+    let inv_n = 1.0 / num_paths as f64;
+
+    // Parallel over time steps: each iteration reads column i from all paths,
+    // computes mean and std in a single pass, and produces (mean, upper_ci, lower_ci).
+    let (mean_path, (upper_ci, lower_ci)): (Vec<f64>, (Vec<f64>, Vec<f64>)) = (0..num_time_steps)
+        .into_par_iter()
         .map(|i| {
-            result
+            let (sum, sum_sq) = result
                 .paths
                 .iter()
-                .map(|p| p.values.get(i).copied().unwrap_or(0.0))
-                .collect()
+                .fold((0.0_f64, 0.0_f64), |(s, sq), p| {
+                    let v = p.values.get(i).copied().unwrap_or(0.0);
+                    (s + v, sq + v * v)
+                });
+            let mean = sum * inv_n;
+            // Var(X) = E[X²] - E[X]² (computational formula, single pass)
+            let variance = (sum_sq * inv_n - mean * mean).max(0.0);
+            let ci_offset = 1.96 * variance.sqrt();
+            (mean, (mean + ci_offset, mean - ci_offset))
         })
-        .collect();
-
-    let mean_path: Vec<f64> = transposed_values
-        .iter()
-        .map(|vals| vals.iter().sum::<f64>() / vals.len() as f64)
-        .collect();
-
-    let upper_ci: Vec<f64> = transposed_values
-        .iter()
-        .zip(mean_path.iter())
-        .map(|(vals, &mean)| {
-            let variance = vals.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / vals.len() as f64;
-            mean + 1.96 * variance.sqrt()
-        })
-        .collect();
-
-    let lower_ci: Vec<f64> = transposed_values
-        .iter()
-        .zip(mean_path.iter())
-        .map(|(vals, &mean)| {
-            let variance = vals.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / vals.len() as f64;
-            mean - 1.96 * variance.sqrt()
-        })
-        .collect();
+        .unzip();
 
     path_datasets.push(create_dataset(
         "Mean Path",

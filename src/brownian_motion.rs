@@ -172,36 +172,68 @@ pub fn run(params: &Params) -> SimulationResult {
         .collect();
 
     let n = paths.len() as f64;
-    let final_values: Vec<f64> = paths.iter().map(|p| p.final_value).collect();
 
-    let mean_final = final_values.iter().sum::<f64>() / n;
-    let variance_final = final_values
-        .iter()
-        .map(|x| (x - mean_final).powi(2))
-        .sum::<f64>()
-        / n;
-    let std_final = variance_final.sqrt();
+    let (
+        sum_final,
+        sum_max,
+        sum_min,
+        cnt_hit_upper,
+        cnt_hit_lower,
+        cnt_end_above,
+        cnt_end_below,
+    ) = paths
+        .par_iter()
+        .fold(
+            || (0.0_f64, 0.0_f64, 0.0_f64, 0u64, 0u64, 0u64, 0u64),
+            |(sf, sm, sn, hu, hl, ea, eb), p| {
+                (
+                    sf + p.final_value,
+                    sm + p.max_value,
+                    sn + p.min_value,
+                    hu + p.hit_upper_barrier as u64,
+                    hl + p.hit_lower_barrier as u64,
+                    ea + p.ends_above_upper as u64,
+                    eb + p.ends_below_lower as u64,
+                )
+            },
+        )
+        .reduce(
+            || (0.0, 0.0, 0.0, 0, 0, 0, 0),
+            |(a1, b1, c1, d1, e1, f1, g1), (a2, b2, c2, d2, e2, f2, g2)| {
+                (a1 + a2, b1 + b2, c1 + c2, d1 + d2, e1 + e2, f1 + f2, g1 + g2)
+            },
+        );
 
-    let mean_max = paths.iter().map(|p| p.max_value).sum::<f64>() / n;
-    let mean_min = paths.iter().map(|p| p.min_value).sum::<f64>() / n;
+    let mean_final = sum_final / n;
+    let mean_max = sum_max / n;
+    let mean_min = sum_min / n;
+    let prob_hit_upper = cnt_hit_upper as f64 / n;
+    let prob_hit_lower = cnt_hit_lower as f64 / n;
+    let prob_end_above = cnt_end_above as f64 / n;
+    let prob_end_below = cnt_end_below as f64 / n;
 
-    let prob_hit_upper = paths.iter().filter(|p| p.hit_upper_barrier).count() as f64 / n;
-    let prob_hit_lower = paths.iter().filter(|p| p.hit_lower_barrier).count() as f64 / n;
-    let prob_end_above = paths.iter().filter(|p| p.ends_above_upper).count() as f64 / n;
-    let prob_end_below = paths.iter().filter(|p| p.ends_below_lower).count() as f64 / n;
+    // Second pass (parallel): variance of final values + return statistics.
+    // Needs mean_final from first pass, so this is a separate reduction.
+    let inv_s0 = 1.0 / params.s0;
+    let (sum_var_final, sum_ret, sum_ret_sq) = paths
+        .par_iter()
+        .fold(
+            || (0.0_f64, 0.0_f64, 0.0_f64),
+            |(sv, sr, sr2), p| {
+                let diff = p.final_value - mean_final;
+                let ret = (p.final_value - params.s0) * inv_s0;
+                (sv + diff * diff, sr + ret, sr2 + ret * ret)
+            },
+        )
+        .reduce(
+            || (0.0, 0.0, 0.0),
+            |(a1, b1, c1), (a2, b2, c2)| (a1 + a2, b1 + b2, c1 + c2),
+        );
 
-    let mean_return = (mean_final - params.s0) / params.s0;
-    let returns: Vec<f64> = final_values
-        .iter()
-        .map(|v| (v - params.s0) / params.s0)
-        .collect();
-    let mean_ret = returns.iter().sum::<f64>() / n;
-    let var_ret = returns
-        .iter()
-        .map(|r| (r - mean_ret).powi(2))
-        .sum::<f64>()
-        / n;
-    let vol_realized = var_ret.sqrt();
+    let std_final = (sum_var_final / n).sqrt();
+    let mean_return = (mean_final - params.s0) * inv_s0;
+    let mean_ret = sum_ret / n;
+    let vol_realized = (sum_ret_sq / n - mean_ret * mean_ret).max(0.0).sqrt();
 
     SimulationResult {
         paths,
@@ -223,29 +255,45 @@ pub fn run(params: &Params) -> SimulationResult {
 pub fn final_value_distribution(result: &SimulationResult, num_bins: usize) -> (Vec<f64>, Vec<usize>) {
     let final_values: Vec<f64> = result.paths.iter().map(|p| p.final_value).collect();
 
-    let min_val = final_values
-        .iter()
-        .cloned()
-        .fold(f64::INFINITY, f64::min);
-    let max_val = final_values
-        .iter()
-        .cloned()
-        .fold(f64::NEG_INFINITY, f64::max);
+    let (min_val, max_val) = final_values
+        .par_iter()
+        .fold(
+            || (f64::INFINITY, f64::NEG_INFINITY),
+            |(mn, mx), &v| (f64::min(mn, v), f64::max(mx, v)),
+        )
+        .reduce(
+            || (f64::INFINITY, f64::NEG_INFINITY),
+            |(mn1, mx1), (mn2, mx2)| (f64::min(mn1, mn2), f64::max(mx1, mx2)),
+        );
 
     let range = max_val - min_val;
     let bin_width = if range == 0.0 { 1.0 } else { range / num_bins as f64 };
 
-    let mut bins = vec![0; num_bins];
-
-    for &value in &final_values {
-        let bin_idx = if range == 0.0 {
-            0
-        } else {
-            ((value - min_val) / bin_width).floor() as usize
-        };
-        let bin_idx = bin_idx.min(num_bins - 1);
-        bins[bin_idx] += 1;
-    }
+    // Parallel histogram: each thread builds a local bin array, then merge
+    let bins = final_values
+        .par_iter()
+        .fold(
+            || vec![0usize; num_bins],
+            |mut local_bins, &value| {
+                let bin_idx = if range == 0.0 {
+                    0
+                } else {
+                    ((value - min_val) / bin_width).floor() as usize
+                };
+                let bin_idx = bin_idx.min(num_bins - 1);
+                local_bins[bin_idx] += 1;
+                local_bins
+            },
+        )
+        .reduce(
+            || vec![0usize; num_bins],
+            |mut a, b| {
+                for (ai, bi) in a.iter_mut().zip(b.iter()) {
+                    *ai += bi;
+                }
+                a
+            },
+        );
 
     let bin_centers: Vec<f64> = (0..num_bins)
         .map(|i| min_val + (i as f64 + 0.5) * bin_width)
@@ -262,12 +310,12 @@ pub fn passage_time_distribution(
     let times: Vec<f64> = match barrier_type {
         BarrierType::Upper => result
             .paths
-            .iter()
+            .par_iter()
             .filter_map(|p| p.first_passage_time_upper)
             .collect(),
         BarrierType::Lower => result
             .paths
-            .iter()
+            .par_iter()
             .filter_map(|p| p.first_passage_time_lower)
             .collect(),
     };
@@ -276,17 +324,39 @@ pub fn passage_time_distribution(
         return (Vec::new(), Vec::new());
     }
 
-    let min_time = times.iter().cloned().fold(f64::INFINITY, f64::min);
-    let max_time = times.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+    let (min_time, max_time) = times
+        .par_iter()
+        .fold(
+            || (f64::INFINITY, f64::NEG_INFINITY),
+            |(mn, mx), &v| (f64::min(mn, v), f64::max(mx, v)),
+        )
+        .reduce(
+            || (f64::INFINITY, f64::NEG_INFINITY),
+            |(mn1, mx1), (mn2, mx2)| (f64::min(mn1, mn2), f64::max(mx1, mx2)),
+        );
+
     let bin_width = (max_time - min_time) / num_bins as f64;
 
-    let mut bins = vec![0; num_bins];
-
-    for &time in &times {
-        let bin_idx = ((time - min_time) / bin_width).floor() as usize;
-        let bin_idx = bin_idx.min(num_bins - 1);
-        bins[bin_idx] += 1;
-    }
+    let bins = times
+        .par_iter()
+        .fold(
+            || vec![0usize; num_bins],
+            |mut local_bins, &time| {
+                let bin_idx = ((time - min_time) / bin_width).floor() as usize;
+                let bin_idx = bin_idx.min(num_bins - 1);
+                local_bins[bin_idx] += 1;
+                local_bins
+            },
+        )
+        .reduce(
+            || vec![0usize; num_bins],
+            |mut a, b| {
+                for (ai, bi) in a.iter_mut().zip(b.iter()) {
+                    *ai += bi;
+                }
+                a
+            },
+        );
 
     let bin_centers: Vec<f64> = (0..num_bins)
         .map(|i| min_time + (i as f64 + 0.5) * bin_width)

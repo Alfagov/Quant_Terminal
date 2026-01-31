@@ -1,8 +1,29 @@
 use serde::{Deserialize, Serialize};
 use validator::Validate;
+use rayon::prelude::*;
 
 const MAX_N: usize = 100_000;
 const MAX_K: usize = 1000;
+
+struct LogFactorialTable {
+    table: Vec<f64>,
+}
+
+impl LogFactorialTable {
+    fn new(max_k: usize) -> Self {
+        let mut table = Vec::with_capacity(max_k + 1);
+        table.push(0.0); // ln(0!) = 0
+        for i in 1..=max_k {
+            table.push(table[i - 1] + (i as f64).ln());
+        }
+        Self { table }
+    }
+
+    #[inline]
+    fn ln_factorial(&self, n: usize) -> f64 {
+        self.table[n]
+    }
+}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Validate)]
 pub struct Params {
@@ -74,17 +95,22 @@ fn factorial(n: usize) -> f64 {
     (1..=n).map(|x| x as f64).product()
 }
 
-fn poisson_pmf(lambda: f64, k: usize) -> f64 {
-    let lambda_k = lambda.powi(k as i32);
-    let e_neg_lambda = (-lambda).exp();
-    (lambda_k * e_neg_lambda) / factorial(k)
+fn poisson_pmf(lambda: f64, k: usize, lft: &LogFactorialTable) -> f64 {
+    if lambda <= 0.0 {
+        return if k == 0 {1.0} else {0.0};
+    }
+    let log_pmf = k as f64 * lambda.ln() - lambda - lft.ln_factorial(k);
+    log_pmf.exp()
 }
 
 pub fn simulate(params: &Params) -> Vec<Result> {
+    let lft = LogFactorialTable::new(params.max_k);
+
     (0..params.max_k)
+        .into_par_iter()
         .map(|k| {
             let binomial_prob = binomial_pmf(params.n, params.p, k);
-            let poisson_prob = poisson_pmf(params.lambda, k);
+            let poisson_prob = poisson_pmf(params.lambda, k, &lft);
             Result {
                 k,
                 binomial_prob,
@@ -96,25 +122,34 @@ pub fn simulate(params: &Params) -> Vec<Result> {
 }
 
 pub fn calculate_metrics(results: &[Result]) -> (f64, f64, f64, f64) {
-    let total_variation = results.iter().map(|r| r.abs_error).sum::<f64>() * 0.5;
-    let max_error = results
-        .iter()
-        .map(|r| r.abs_error)
-        .fold(0.0, f64::max);
+    let (sum_abs, max_err, sum_sq, kl_sum) = results
+        .par_iter()
+        .fold(|| (0.0f64, 0.0f64, 0.0f64, 0.0f64),
+        |(sum_abs, max_err, sum_sq, kl), r| {
+            let kl_term = if r.binomial_prob > 0.0 && r.poisson_prob > 0.0 {
+                r.binomial_prob * (r.binomial_prob / r.poisson_prob).ln()
+            } else {
+                0.0
+            };
 
-    let mse = results
-        .iter()
-        .map(|r| r.abs_error * r.abs_error)
-        .sum::<f64>()
-        / results.len() as f64;
+            (
+                sum_abs + r.abs_error,
+                f64::max(max_err, r.abs_error),
+                sum_sq + r.abs_error * r.abs_error,
+                kl + kl_term,
+            )
+        })
+        .reduce(
+            || (0.0, 0.0, 0.0, 0.0),
+            |(a1, b1, c1, d1), (a2, b2, c2, d2)| {
+                (a1 + a2, f64::max(b1, b2), c1 + c2, d1 + d2)
+            }
+        );
 
-    let kl_divergence = results
-        .iter()
-        .filter(|r| r.binomial_prob > 0.0 && r.poisson_prob > 0.0)
-        .map(|r| r.binomial_prob * (r.binomial_prob / r.poisson_prob).ln())
-        .sum::<f64>();
+    let total_variance = sum_abs * 0.5;
+    let mse = sum_sq / results.len() as f64;
 
-    (total_variation, max_error, mse, kl_divergence)
+    (total_variance, max_err, mse, kl_sum)
 }
 
 #[cfg(test)]
