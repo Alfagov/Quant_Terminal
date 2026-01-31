@@ -97,6 +97,14 @@ fn simulate_path(params: &Params) -> PathResult {
     let mut fpt_upper = None;
     let mut fpt_lower = None;
 
+    let mut max_value = params.s0;
+    let mut min_value = params.s0;
+
+    let drift_dt = match params.motion_type {
+        MotionType::Standard => params.mu * dt,
+        MotionType::Geometric => (params.mu - 0.5 * params.sigma * params.sigma) * dt,
+    };
+
     times.push(0.0);
     values.push(params.s0);
 
@@ -105,19 +113,21 @@ fn simulate_path(params: &Params) -> PathResult {
 
         current_value = match params.motion_type {
             MotionType::Standard => {
-                current_value + params.mu * dt + params.sigma * dw
+                current_value + drift_dt + params.sigma * dw
             }
             MotionType::Geometric => {
-                current_value
-                    * ((params.mu - 0.5 * params.sigma * params.sigma) * dt
-                    + params.sigma * dw)
-                    .exp()
+                current_value * (drift_dt + params.sigma * dw).exp()
             }
         };
 
+        if current_value > max_value {
+            max_value = current_value;
+        } else if current_value < min_value {
+            min_value = current_value;
+        }
+
         let current_time = i as f64 * dt;
 
-        // Check barriers
         if let Some(barrier) = params.upper_barrier {
             if current_value >= barrier && !hit_upper {
                 hit_upper = true;
@@ -136,7 +146,7 @@ fn simulate_path(params: &Params) -> PathResult {
         values.push(current_value);
     }
 
-    let final_val = *values.last().unwrap();
+    let final_val = current_value;
     let max_value = values.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
     let min_value = values.iter().cloned().fold(f64::INFINITY, f64::min);
 
@@ -171,12 +181,16 @@ pub fn run(params: &Params) -> SimulationResult {
         .map(|_| simulate_path(params))
         .collect();
 
-    let n = paths.len() as f64;
+    let inv_n = 1.0 / paths.len() as f64;
+    let inv_s0 = 1.0 / params.s0;
 
     let (
         sum_final,
+        sum_final_sq,
         sum_max,
         sum_min,
+        sum_ret,
+        sum_ret_sq,
         cnt_hit_upper,
         cnt_hit_lower,
         cnt_end_above,
@@ -184,12 +198,16 @@ pub fn run(params: &Params) -> SimulationResult {
     ) = paths
         .par_iter()
         .fold(
-            || (0.0_f64, 0.0_f64, 0.0_f64, 0u64, 0u64, 0u64, 0u64),
-            |(sf, sm, sn, hu, hl, ea, eb), p| {
+            || (0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64, 0u64, 0u64, 0u64, 0u64),
+            |(sf, sf2, sm, sn, sr, sr2, hu, hl, ea, eb), p| {
+                let ret = (p.final_value - params.s0) * inv_s0;
                 (
                     sf + p.final_value,
+                    sf2 + p.final_value * p.final_value,
                     sm + p.max_value,
                     sn + p.min_value,
+                    sr + ret,
+                    sr2 + ret * ret,
                     hu + p.hit_upper_barrier as u64,
                     hl + p.hit_lower_barrier as u64,
                     ea + p.ends_above_upper as u64,
@@ -198,42 +216,25 @@ pub fn run(params: &Params) -> SimulationResult {
             },
         )
         .reduce(
-            || (0.0, 0.0, 0.0, 0, 0, 0, 0),
-            |(a1, b1, c1, d1, e1, f1, g1), (a2, b2, c2, d2, e2, f2, g2)| {
-                (a1 + a2, b1 + b2, c1 + c2, d1 + d2, e1 + e2, f1 + f2, g1 + g2)
+            || (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 0, 0),
+            |(a1, b1, c1, d1, e1, f1, g1, h1, i1, j1),
+             (a2, b2, c2, d2, e2, f2, g2, h2, i2, j2)| {
+                (a1+a2, b1+b2, c1+c2, d1+d2, e1+e2, f1+f2, g1+g2, h1+h2, i1+i2, j1+j2)
             },
         );
 
-    let mean_final = sum_final / n;
-    let mean_max = sum_max / n;
-    let mean_min = sum_min / n;
-    let prob_hit_upper = cnt_hit_upper as f64 / n;
-    let prob_hit_lower = cnt_hit_lower as f64 / n;
-    let prob_end_above = cnt_end_above as f64 / n;
-    let prob_end_below = cnt_end_below as f64 / n;
+    let mean_final = sum_final * inv_n;
+    let mean_max = sum_max * inv_n;
+    let mean_min = sum_min * inv_n;
+    let prob_hit_upper = cnt_hit_upper as f64 * inv_n;
+    let prob_hit_lower = cnt_hit_lower as f64 * inv_n;
+    let prob_end_above = cnt_end_above as f64 * inv_n;
+    let prob_end_below = cnt_end_below as f64 * inv_n;
 
-    // Second pass (parallel): variance of final values + return statistics.
-    // Needs mean_final from first pass, so this is a separate reduction.
-    let inv_s0 = 1.0 / params.s0;
-    let (sum_var_final, sum_ret, sum_ret_sq) = paths
-        .par_iter()
-        .fold(
-            || (0.0_f64, 0.0_f64, 0.0_f64),
-            |(sv, sr, sr2), p| {
-                let diff = p.final_value - mean_final;
-                let ret = (p.final_value - params.s0) * inv_s0;
-                (sv + diff * diff, sr + ret, sr2 + ret * ret)
-            },
-        )
-        .reduce(
-            || (0.0, 0.0, 0.0),
-            |(a1, b1, c1), (a2, b2, c2)| (a1 + a2, b1 + b2, c1 + c2),
-        );
-
-    let std_final = (sum_var_final / n).sqrt();
+    let std_final = (sum_final_sq * inv_n - mean_final * mean_final).max(0.0).sqrt();
     let mean_return = (mean_final - params.s0) * inv_s0;
-    let mean_ret = sum_ret / n;
-    let vol_realized = (sum_ret_sq / n - mean_ret * mean_ret).max(0.0).sqrt();
+    let mean_ret = sum_ret * inv_n;
+    let vol_realized = (sum_ret_sq * inv_n - mean_ret * mean_ret).max(0.0).sqrt();
 
     SimulationResult {
         paths,
@@ -253,13 +254,12 @@ pub fn run(params: &Params) -> SimulationResult {
 
 
 pub fn final_value_distribution(result: &SimulationResult, num_bins: usize) -> (Vec<f64>, Vec<usize>) {
-    let final_values: Vec<f64> = result.paths.iter().map(|p| p.final_value).collect();
-
-    let (min_val, max_val) = final_values
+    let (min_val, max_val) = result
+        .paths
         .par_iter()
         .fold(
             || (f64::INFINITY, f64::NEG_INFINITY),
-            |(mn, mx), &v| (f64::min(mn, v), f64::max(mx, v)),
+            |(mn, mx), p| (f64::min(mn, p.final_value), f64::max(mx, p.final_value)),
         )
         .reduce(
             || (f64::INFINITY, f64::NEG_INFINITY),
@@ -268,17 +268,19 @@ pub fn final_value_distribution(result: &SimulationResult, num_bins: usize) -> (
 
     let range = max_val - min_val;
     let bin_width = if range == 0.0 { 1.0 } else { range / num_bins as f64 };
+    let inv_bin_width = 1.0 / bin_width;
 
     // Parallel histogram: each thread builds a local bin array, then merge
-    let bins = final_values
+    let bins = result
+        .paths
         .par_iter()
         .fold(
             || vec![0usize; num_bins],
-            |mut local_bins, &value| {
+            |mut local_bins, p| {
                 let bin_idx = if range == 0.0 {
                     0
                 } else {
-                    ((value - min_val) / bin_width).floor() as usize
+                    ((p.final_value - min_val) / bin_width).floor() as usize
                 };
                 let bin_idx = bin_idx.min(num_bins - 1);
                 local_bins[bin_idx] += 1;

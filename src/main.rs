@@ -20,6 +20,8 @@ mod binomial_poisson;
 mod brownian_motion;
 mod handlers;
 mod charts;
+mod black_scholes;
+mod utils;
 
 pub struct SecurityLimits;
 
@@ -67,10 +69,12 @@ async fn main() -> anyhow::Result<()> {
         .route("/glosten-milgrom", get(handlers::serve_glosten_milgrom))
         .route("/binomial-poisson", get(handlers::serve_binomial_poisson))
         .route("/brownian-motion", get(handlers::serve_brownian_motion))
+        .route("/black-scholes", get(handlers::serve_black_scholes))
 
         .route("/simulate-glosten", post(handlers::simulate_glosten))
         .route("/simulate-binomial-poisson", post(handlers::simulate_binomial_poisson))
         .route("/simulate-brownian-motion", post(handlers::simulate_brownian_motion))
+        .route("/simulate-black-scholes", post(handlers::simulate_black_scholes))
 
         .nest_service("/static", ServeDir::new("static"))
 

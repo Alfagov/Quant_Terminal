@@ -4,10 +4,11 @@ use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Response};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
+use statrs::distribution::Normal;
 use tokio::task::JoinError;
 use validator::Validate;
 use crate::charts::{create_dataset, create_dataset_with_dash, render_chart, Dataset};
-use crate::{binomial_poisson, brownian_motion, market_maker};
+use crate::{binomial_poisson, black_scholes, brownian_motion, market_maker};
 use crate::brownian_motion::SimulationResult;
 
 pub enum AppError {
@@ -114,6 +115,29 @@ pub struct BrownianStatsTemplate {
 }
 
 #[derive(Template)]
+#[template(path = "black_scholes_stats.html")]
+pub struct BlackScholesStatsTemplate {
+    pub price: String,
+    pub option_type: String,
+    pub intrinsic_value: String,
+    pub time_value: String,
+    pub moneyness: String,
+    pub moneyness_ratio: String,
+    pub delta: String,
+    pub gamma: String,
+    pub theta: String,
+    pub vega: String,
+    pub rho: String,
+    pub parity_status: String,
+    pub parity_class: String,
+    pub parity_residual: String,
+    pub d1: String,
+    pub d2: String,
+    pub nd1: String,
+    pub nd2: String,
+}
+
+#[derive(Template)]
 #[template(path = "simulation_results.html")]
 pub struct SimulationResultsTemplate {
     pub stats_html: String,
@@ -141,12 +165,366 @@ pub async fn serve_brownian_motion() -> Result<Html<String>, AppError> {
     serve_static_file("brownian-motion.html").await
 }
 
+pub async fn serve_black_scholes() -> Result<Html<String>, AppError> {
+    serve_static_file("black-scholes.html").await
+}
+
 async fn serve_static_file(filename: &str) -> Result<Html<String>, AppError> {
     let path = format!("static/{}", filename);
     tokio::fs::read_to_string(&path)
         .await
         .map(Html)
         .map_err(|e| AppError::InternalError(format!("Failed to read file: {}", e)))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BlackScholesForm {
+    s: f64,
+    k: f64,
+    t: f64,
+    r: f64,
+    sigma: f64,
+    option_type: String,
+    num_points: usize,
+}
+
+pub async fn simulate_black_scholes(
+    Form(form): Form<BlackScholesForm>,
+) -> Result<Html<String>, AppError> {
+    let option_type = if form.option_type == "put" {
+        black_scholes::OptionType::Put
+    } else {
+        black_scholes::OptionType::Call
+    };
+
+    let norm = Normal::new(0.0, 1.0).unwrap();
+
+
+    let params = black_scholes::Params {
+        s: form.s,
+        k: form.k,
+        t: form.t,
+        r: form.r,
+        sigma: form.sigma,
+        option_type,
+    };
+
+    params
+        .validate()
+        .map_err(|e| AppError::ValidationError(e.to_string()))?;
+    params
+        .validate_limits()
+        .map_err(AppError::ValidationError)?;
+
+    let num_points = form.num_points;
+
+    let (bs_price, gs, surfaces) = tokio::task::spawn_blocking(move || {
+        let pr = black_scholes::price(&params, &norm);
+        let gs = black_scholes::greeks(&params, &norm);
+        let surfaces = black_scholes::generate_surfaces(&params, num_points);
+        (pr, gs, surfaces)
+    })
+        .await?;
+
+    // Compute display values
+    let intrinsic = match option_type {
+        black_scholes::OptionType::Call => (form.s - form.k).max(0.0),
+        black_scholes::OptionType::Put => (form.k - form.s).max(0.0),
+    };
+    let tv = (bs_price - intrinsic).max(0.0);
+
+    let moneyness_ratio = form.s / form.k;
+    let moneyness = if (moneyness_ratio - 1.0).abs() < 0.02 {
+        "ATM"
+    } else if (option_type == black_scholes::OptionType::Call && form.s > form.k)
+        || (option_type == black_scholes::OptionType::Put && form.s < form.k)
+    {
+        "ITM"
+    } else {
+        "OTM"
+    };
+
+    let option_type_str = match option_type {
+        black_scholes::OptionType::Call => "European Call",
+        black_scholes::OptionType::Put => "European Put",
+    };
+
+    let parity_residual =
+        black_scholes::put_call_parity_residual(form.s, form.k, form.t, form.r, form.sigma);
+    let (parity_status, parity_class) = if parity_residual.abs() < 1e-8 {
+        ("Satisfied", "text-emerald-400")
+    } else {
+        ("Violated", "text-red-400")
+    };
+
+    // d1, d2 for display
+    let sigma_sqrt_t = form.sigma * form.t.sqrt();
+    let d1_val = ((form.s / form.k).ln() + (form.r + 0.5 * form.sigma * form.sigma) * form.t)
+        / sigma_sqrt_t;
+    let d2_val = d1_val - sigma_sqrt_t;
+
+    // Φ(d) approximation for display
+    fn norm_cdf_display(x: f64) -> f64 {
+        use std::f64::consts::SQRT_2;
+        fn erf_inner(x: f64) -> f64 {
+            let sign = if x >= 0.0 { 1.0 } else { -1.0 };
+            let x = x.abs();
+            let p = 0.3275911;
+            let a1 = 0.254829592;
+            let a2 = -0.284496736;
+            let a3 = 1.421413741;
+            let a4 = -1.453152027;
+            let a5 = 1.061405429;
+            let t = 1.0 / (1.0 + p * x);
+            let t2 = t * t;
+            let t3 = t2 * t;
+            let t4 = t3 * t;
+            let t5 = t4 * t;
+            let y = 1.0
+                - (a1 * t + a2 * t2 + a3 * t3 + a4 * t4 + a5 * t5) * (-x * x).exp();
+            sign * y
+        }
+        0.5 * (1.0 + erf_inner(x / SQRT_2))
+    }
+
+    let nd1 = norm_cdf_display(d1_val);
+    let nd2 = norm_cdf_display(d2_val);
+
+    let stats_template = BlackScholesStatsTemplate {
+        price: format!("{:.4}", bs_price),
+        option_type: option_type_str.to_string(),
+        intrinsic_value: format!("{:.4}", intrinsic),
+        time_value: format!("{:.4}", tv),
+        moneyness: moneyness.to_string(),
+        moneyness_ratio: format!("{:.4}", moneyness_ratio),
+        delta: format!("{:.4}", gs.delta),
+        gamma: format!("{:.6}", gs.gamma),
+        theta: format!("{:.4}", gs.theta / 365.0),
+        vega: format!("{:.4}", gs.vega / 100.0),
+        rho: format!("{:.4}", gs.rho / 100.0),
+        parity_status: parity_status.to_string(),
+        parity_class: parity_class.to_string(),
+        parity_residual: format!("{:.2e}", parity_residual),
+        d1: format!("{:.4}", d1_val),
+        d2: format!("{:.4}", d2_val),
+        nd1: format!("{:.4}", nd1),
+        nd2: format!("{:.4}", nd2),
+    };
+
+    let stats_html = stats_template.render()?;
+
+    // ── Build charts ──────────────────────────────────────────────────────
+    let spot_labels: Vec<i32> = surfaces.spot_range.iter().map(|s| *s as i32).collect();
+    let vol_labels: Vec<String> = surfaces
+        .vol_range
+        .iter()
+        .map(|v| format!("{:.0}%", v * 100.0))
+        .collect();
+    let time_labels: Vec<String> = surfaces
+        .time_range
+        .iter()
+        .map(|t| format!("{:.2}", t))
+        .collect();
+
+    let charts = vec![
+        // 1. Price + Intrinsic + Time Value vs Spot
+        render_chart(
+            "priceChart",
+            "Option Price vs Spot Price",
+            &spot_labels,
+            vec![
+                create_dataset(
+                    "Option Price",
+                    &surfaces.prices,
+                    "#10b981",
+                    "rgba(16, 185, 129, 0.1)",
+                    3,
+                    true,
+                ),
+                create_dataset_with_dash(
+                    "Intrinsic Value",
+                    &surfaces.intrinsic,
+                    "#8b5cf6",
+                    "rgba(139, 92, 246, 0.0)",
+                    2,
+                    false,
+                    vec![5, 5],
+                ),
+                create_dataset(
+                    "Time Value",
+                    &surfaces.time_value,
+                    "#f59e0b",
+                    "rgba(245, 158, 11, 0.1)",
+                    2,
+                    true,
+                ),
+            ],
+            "Spot Price ($)",
+            "Value ($)",
+            true,
+        )?,
+        // 2. Delta vs Spot
+        render_chart(
+            "deltaChart",
+            "Delta (\u{0394}) vs Spot Price",
+            &spot_labels,
+            vec![create_dataset(
+                "Delta",
+                &surfaces.deltas,
+                "#10b981",
+                "rgba(16, 185, 129, 0.1)",
+                2,
+                true,
+            )],
+            "Spot Price ($)",
+            "Delta",
+            false,
+        )?,
+        // 3. Gamma vs Spot
+        render_chart(
+            "gammaChart",
+            "Gamma (\u{0393}) vs Spot Price",
+            &spot_labels,
+            vec![create_dataset(
+                "Gamma",
+                &surfaces.gammas,
+                "#06b6d4",
+                "rgba(6, 182, 212, 0.1)",
+                2,
+                true,
+            )],
+            "Spot Price ($)",
+            "Gamma",
+            false,
+        )?,
+        // 4. Theta vs Spot
+        render_chart(
+            "thetaChart",
+            "Theta (\u{0398}) vs Spot Price \u{2014} Per Day",
+            &spot_labels,
+            vec![create_dataset(
+                "Theta (per day)",
+                &surfaces.thetas,
+                "#f59e0b",
+                "rgba(245, 158, 11, 0.1)",
+                2,
+                true,
+            )],
+            "Spot Price ($)",
+            "Theta ($/day)",
+            false,
+        )?,
+        // 5. Vega vs Spot
+        render_chart(
+            "vegaChart",
+            "Vega (\u{03BD}) vs Spot Price \u{2014} Per 1% Vol",
+            &spot_labels,
+            vec![create_dataset(
+                "Vega (per 1% vol)",
+                &surfaces.vegas,
+                "#8b5cf6",
+                "rgba(139, 92, 246, 0.1)",
+                2,
+                true,
+            )],
+            "Spot Price ($)",
+            "Vega",
+            false,
+        )?,
+        // 6. Rho vs Spot
+        render_chart(
+            "rhoChart",
+            "Rho (\u{03C1}) vs Spot Price \u{2014} Per 1% Rate",
+            &spot_labels,
+            vec![create_dataset(
+                "Rho (per 1% rate)",
+                &surfaces.rhos,
+                "#3b82f6",
+                "rgba(59, 130, 246, 0.1)",
+                2,
+                true,
+            )],
+            "Spot Price ($)",
+            "Rho",
+            false,
+        )?,
+        // 7. Price vs Volatility
+        render_chart(
+            "priceVolChart",
+            "Option Price vs Implied Volatility",
+            &vol_labels,
+            vec![create_dataset(
+                "Price",
+                &surfaces.price_vs_vol,
+                "#10b981",
+                "rgba(16, 185, 129, 0.1)",
+                2,
+                true,
+            )],
+            "Volatility",
+            "Price ($)",
+            false,
+        )?,
+        // 8. Vega vs Volatility
+        render_chart(
+            "vegaVolChart",
+            "Vega (\u{03BD}) vs Implied Volatility",
+            &vol_labels,
+            vec![create_dataset(
+                "Vega",
+                &surfaces.vega_vs_vol,
+                "#8b5cf6",
+                "rgba(139, 92, 246, 0.1)",
+                2,
+                true,
+            )],
+            "Volatility",
+            "Vega",
+            false,
+        )?,
+        // 9. Price vs Time to Expiry (time decay)
+        render_chart(
+            "priceTimeChart",
+            "Option Price vs Time to Expiry (Time Decay)",
+            &time_labels,
+            vec![create_dataset(
+                "Price",
+                &surfaces.price_vs_time,
+                "#10b981",
+                "rgba(16, 185, 129, 0.1)",
+                2,
+                true,
+            )],
+            "Time to Expiry (years)",
+            "Price ($)",
+            false,
+        )?,
+        // 10. Theta vs Time
+        render_chart(
+            "thetaTimeChart",
+            "Theta (\u{0398}) vs Time to Expiry \u{2014} Per Day",
+            &time_labels,
+            vec![create_dataset(
+                "Theta (per day)",
+                &surfaces.theta_vs_time,
+                "#f59e0b",
+                "rgba(245, 158, 11, 0.1)",
+                2,
+                true,
+            )],
+            "Time to Expiry (years)",
+            "Theta ($/day)",
+            false,
+        )?,
+    ];
+
+    let bs_result_template = SimulationResultsTemplate {
+        stats_html,
+        charts,
+    };
+
+    let html = bs_result_template.render()?;
+    Ok(Html(html))
 }
 
 // Glosten-Milgrom simulation handler
@@ -203,12 +581,21 @@ pub async fn simulate_glosten(
     let (informed_trades, uninformed_trades) = market_maker::separate_trades(&rounds);
 
     // Extract data for charts
-    let time_steps: Vec<usize> = rounds.iter().map(|r| r.t).collect();
-    let bids: Vec<f64> = rounds.iter().map(|r| r.bid).collect();
-    let asks: Vec<f64> = rounds.iter().map(|r| r.ask).collect();
-    let mids: Vec<f64> = rounds.iter().map(|r| r.mid).collect();
-    let spreads: Vec<f64> = rounds.iter().map(|r| r.spread).collect();
-    let beliefs: Vec<f64> = rounds.iter().map(|r| r.belief_p_h).collect();
+    let len = rounds.len();
+    let mut time_steps = Vec::with_capacity(len);
+    let mut bids = Vec::with_capacity(len);
+    let mut asks = Vec::with_capacity(len);
+    let mut mids = Vec::with_capacity(len);
+    let mut spreads = Vec::with_capacity(len);
+    let mut beliefs = Vec::with_capacity(len);
+    for r in &rounds {
+        time_steps.push(r.t);
+        bids.push(r.bid);
+        asks.push(r.ask);
+        mids.push(r.mid);
+        spreads.push(r.spread);
+        beliefs.push(r.belief_p_h);
+    }
 
     let true_value = rounds.first().map(|r| r.true_value).unwrap_or(0.0);
     let final_spread = spreads.last().copied().unwrap_or(0.0);
@@ -404,8 +791,12 @@ pub async fn simulate_binomial_poisson(
         .validate_limits()
         .map_err(AppError::ValidationError)?;
 
-    let results = tokio::task::spawn_blocking(move || binomial_poisson::simulate(&params)).await?;
-    let (tv, max_err, mse, kl) = binomial_poisson::calculate_metrics(&results);
+    let (results, (tv, max_err, mse, kl)) = tokio::task::spawn_blocking(move || {
+        let results = binomial_poisson::simulate(&params);
+        let metrics = binomial_poisson::calculate_metrics(&results);
+
+        (results, metrics)
+    }).await?;
 
     let k_values: Vec<usize> = results.iter().map(|r| r.k).collect();
     let binomial_probs: Vec<f64> = results.iter().map(|r| r.binomial_prob).collect();

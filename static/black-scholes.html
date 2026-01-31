@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Black-Scholes Option Pricing - QuantSim</title>
+
+  <!-- Libraries -->
+  <script src="/static/js/htmx.js"></script>
+  <link href="/static/css/output.css" rel="stylesheet">
+  <script src="/static/js/chart.js"></script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="/static/css/styles.css" />
+</head>
+
+<body
+        class="bg-slate-950 text-slate-200 min-h-screen relative overflow-x-hidden selection:bg-blue-500/30 selection:text-blue-200"
+>
+<!-- Background Effects -->
+<div class="fixed inset-0 pointer-events-none z-0">
+  <div
+          class="absolute top-0 right-0 w-full h-[500px] bg-blue-900/10 blur-[100px] rounded-full opacity-40"
+  ></div>
+  <div class="absolute inset-0 bg-grid-pattern opacity-[0.15]"></div>
+</div>
+
+<!-- Navigation -->
+<nav
+        class="fixed w-full z-50 top-0 transition-all duration-300 glass-panel border-b-0 border-b border-white/5"
+>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-20">
+      <div class="flex items-center gap-3">
+        <a href="/" class="group flex items-center gap-3">
+          <div
+                  class="w-10 h-10 bg-blue-600/20 border border-blue-500/50 flex items-center justify-center shadow-lg shadow-blue-500/10 transition-all group-hover:bg-blue-600/30"
+          >
+                                <span class="text-blue-400 font-bold text-xl"
+                                >Q</span
+                                >
+          </div>
+          <span
+                  class="text-white text-lg font-bold tracking-tight"
+          >QUANT<span class="text-blue-400">SIM</span
+          >_TERMINAL</span
+          >
+        </a>
+        <span class="text-slate-600 mx-2 text-xl font-light"
+        >/</span
+        >
+        <span
+                class="text-slate-400 text-sm font-bold uppercase tracking-wider"
+        >BS_PDE</span
+        >
+      </div>
+      <div class="flex items-center space-x-6">
+        <div
+                class="flex items-center gap-2 text-xs text-slate-500 font-mono"
+        >
+                            <span
+                                    class="w-2 h-2 bg-green-500 rounded-full animate-pulse"
+                            ></span>
+          KERNEL_ACTIVE
+        </div>
+        <a
+                href="/"
+                class="text-xs uppercase tracking-widest font-bold text-slate-400 hover:text-white transition-colors border border-slate-700 hover:border-slate-500 px-4 py-2"
+        >
+          [ ESC ] BACK
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="z-10 pt-28 pb-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <!-- Sidebar Controls -->
+    <div class="lg:col-span-1">
+      <div class="glass-panel p-6 sticky top-24 animate-fade-in">
+        <div
+                class="flex items-center justify-between mb-6 border-b border-slate-700 pb-4"
+        >
+          <h2
+                  class="text-sm font-bold text-white uppercase tracking-wider"
+          >
+            > PARAMETERS
+          </h2>
+          <span class="text-xs text-slate-500">[CONFIG]</span>
+        </div>
+
+        <!-- HTMX Form -->
+        <form
+                hx-post="/simulate-black-scholes"
+                hx-target="#stats-section"
+                hx-swap="innerHTML"
+                hx-indicator="#loading"
+                class="space-y-6"
+        >
+          <!-- Option Type -->
+          <div>
+            <label
+                    class="block text-xs font-bold text-slate-400 uppercase mb-2"
+            >
+              Option_Type
+            </label>
+            <select
+                    name="option_type"
+                    id="option_type"
+                    class="w-full bg-slate-900 border border-slate-700 text-slate-300 text-xs p-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 uppercase tracking-wide"
+            >
+              <option value="call">
+                European Call
+              </option>
+              <option value="put">
+                European Put
+              </option>
+            </select>
+          </div>
+
+          <!-- Spot Price -->
+          <div>
+            <label
+                    class="block text-xs font-bold text-slate-400 uppercase mb-2 flex justify-between"
+            >
+              <span>Spot_Price (S)</span>
+              <span id="sValue" class="text-blue-400"
+              >100.00</span
+              >
+            </label>
+            <input
+                    type="range"
+                    name="s"
+                    id="s"
+                    min="10"
+                    max="300"
+                    step="1"
+                    value="100"
+                    oninput="document.getElementById('sValue').textContent = parseFloat(this.value).toFixed(2)"
+                    class="w-full"
+            />
+          </div>
+
+          <!-- Strike Price -->
+          <div>
+            <label
+                    class="block text-xs font-bold text-slate-400 uppercase mb-2 flex justify-between"
+            >
+              <span>Strike_Price (K)</span>
+              <span id="kValue" class="text-blue-400"
+              >100.00</span
+              >
+            </label>
+            <input
+                    type="range"
+                    name="k"
+                    id="k"
+                    min="10"
+                    max="300"
+                    step="1"
+                    value="100"
+                    oninput="document.getElementById('kValue').textContent = parseFloat(this.value).toFixed(2)"
+                    class="w-full"
+            />
+          </div>
+
+          <!-- Time to Expiry -->
+          <div>
+            <label
+                    class="block text-xs font-bold text-slate-400 uppercase mb-2 flex justify-between"
+            >
+              <span>Expiry (T years)</span>
+              <span id="tValue" class="text-blue-400"
+              >1.00</span
+              >
+            </label>
+            <input
+                    type="range"
+                    name="t"
+                    id="t"
+                    min="0.01"
+                    max="5"
+                    step="0.01"
+                    value="1.0"
+                    oninput="document.getElementById('tValue').textContent = parseFloat(this.value).toFixed(2)"
+                    class="w-full"
+            />
+          </div>
+
+          <!-- Risk-free Rate -->
+          <div>
+            <label
+                    class="block text-xs font-bold text-slate-400 uppercase mb-2 flex justify-between"
+            >
+              <span>Risk_Free (r)</span>
+              <span id="rValue" class="text-blue-400"
+              >0.0500</span
+              >
+            </label>
+            <input
+                    type="range"
+                    name="r"
+                    id="r"
+                    min="-0.05"
+                    max="0.20"
+                    step="0.005"
+                    value="0.05"
+                    oninput="document.getElementById('rValue').textContent = parseFloat(this.value).toFixed(4)"
+                    class="w-full"
+            />
+          </div>
+
+          <!-- Volatility -->
+          <div>
+            <label
+                    class="block text-xs font-bold text-slate-400 uppercase mb-2 flex justify-between"
+            >
+              <span>Volatility (σ)</span>
+              <span id="sigmaValue" class="text-blue-400"
+              >0.2000</span
+              >
+            </label>
+            <input
+                    type="range"
+                    name="sigma"
+                    id="sigma"
+                    min="0.01"
+                    max="1.50"
+                    step="0.01"
+                    value="0.20"
+                    oninput="document.getElementById('sigmaValue').textContent = parseFloat(this.value).toFixed(4)"
+                    class="w-full"
+            />
+          </div>
+
+          <!-- Surface Points -->
+          <div>
+            <label
+                    class="block text-xs font-bold text-slate-400 uppercase mb-2 flex justify-between"
+            >
+              <span>Surface_Points</span>
+              <span id="pointsValue" class="text-blue-400"
+              >100</span
+              >
+            </label>
+            <input
+                    type="range"
+                    name="num_points"
+                    id="num_points"
+                    min="20"
+                    max="200"
+                    step="10"
+                    value="100"
+                    oninput="document.getElementById('pointsValue').textContent = this.value"
+                    class="w-full"
+            />
+          </div>
+
+          <!-- Buttons -->
+          <div class="pt-2 space-y-3">
+            <button
+                    type="submit"
+                    class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 text-xs font-bold uppercase tracking-widest transition-all hover:shadow-[0_0_15px_rgba(37,99,235,0.5)] border border-blue-500"
+            >
+              >> Compute_Greeks
+            </button>
+            <button
+                    type="reset"
+                    onclick="resetForm()"
+                    class="w-full bg-transparent hover:bg-slate-800 text-slate-400 py-3 text-xs font-bold uppercase tracking-widest transition-colors border border-slate-700"
+            >
+              Reset_Params
+            </button>
+          </div>
+
+          <div
+                  id="loading"
+                  class="htmx-indicator flex justify-center items-center gap-2 text-blue-400 text-xs font-mono"
+          >
+            <span class="animate-spin">/</span>
+            <span>COMPUTING_GREEKS...</span>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="lg:col-span-3">
+      <!-- Info Box -->
+      <div
+              class="mb-6 glass-panel p-4 border-l-2 border-emerald-500 flex items-start gap-4"
+      >
+        <div class="mt-1 text-emerald-400">
+          <svg
+                  class="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+          >
+            <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            ></path>
+          </svg>
+        </div>
+        <div class="text-xs text-slate-400 leading-relaxed">
+          <strong
+                  class="text-white block mb-1 uppercase tracking-wide"
+          >Model Definition:</strong
+          >
+          The Black-Scholes PDE governs the price V(S,t) of a European option:
+          <span class="text-emerald-300 font-mono"
+          >∂V/∂t + ½σ²S²∂²V/∂S² + rS∂V/∂S − rV = 0</span
+          >. Its closed-form solution yields Greeks that quantify
+          sensitivity to each market parameter: Δ (spot), Γ (convexity),
+          Θ (time decay), ν (volatility), ρ (rates).
+        </div>
+      </div>
+
+      <div
+              id="stats-section"
+              class="space-y-6 min-h-[400px] glass-panel p-1 border border-slate-800 items-center justify-center"
+      >
+        <!-- Initial placeholder -->
+        <div class="text-center p-12">
+          <div
+                  class="inline-flex items-center justify-center w-16 h-16 bg-slate-900 rounded-full border border-slate-700 mb-4 text-slate-500"
+          >
+            <svg
+                    class="w-8 h-8"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+            >
+              <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.5"
+                      d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
+              ></path>
+            </svg>
+          </div>
+          <h3
+                  class="text-lg font-bold text-white uppercase tracking-widest mb-2"
+          >
+            Awaiting Input
+          </h3>
+          <p class="text-slate-500 text-xs font-mono">
+            > Adjust parameters on left sidebar<br />
+            > Click COMPUTE_GREEKS to generate surfaces
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function resetForm() {
+    // Reset display values
+    document.getElementById("sValue").textContent = "100.00";
+    document.getElementById("kValue").textContent = "100.00";
+    document.getElementById("tValue").textContent = "1.00";
+    document.getElementById("rValue").textContent = "0.0500";
+    document.getElementById("sigmaValue").textContent = "0.2000";
+    document.getElementById("pointsValue").textContent = "100";
+
+    // Reset inputs
+    document.getElementById("option_type").value = "call";
+    document.getElementById("s").value = "100";
+    document.getElementById("k").value = "100";
+    document.getElementById("t").value = "1.0";
+    document.getElementById("r").value = "0.05";
+    document.getElementById("sigma").value = "0.20";
+    document.getElementById("num_points").value = "100";
+  }
+
+  // Auto-trigger on load
+  document.addEventListener("DOMContentLoaded", function () {
+    setTimeout(function () {
+      var form = document.querySelector("form[hx-post]");
+      if (form) htmx.trigger(form, "submit");
+    }, 500);
+  });
+</script>
+</body>
+</html>

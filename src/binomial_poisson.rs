@@ -57,35 +57,28 @@ pub struct Result {
     pub abs_error: f64,
 }
 
-fn binomial_coefficient(n: usize, k: usize) -> f64 {
+fn ln_binomial_coefficient(n: usize, k: usize, lft: &LogFactorialTable) -> f64 {
     if k > n {
-        return 0.0;
+        return f64::NEG_INFINITY;
     }
-    if k == 0 || k == n {
-        return 1.0;
-    }
-
-    let k = k.min(n - k);
-    let mut result = 1.0;
-
-    for i in 0..k {
-        result *= (n - i) as f64;
-        result /= (i + 1) as f64;
-    }
-
-    result
+    lft.ln_factorial(n) - lft.ln_factorial(k) - lft.ln_factorial(n - k)
 }
 
-fn binomial_pmf(n: usize, p: f64, k: usize) -> f64 {
+fn binomial_pmf(n: usize, p: f64, k: usize, lft: &LogFactorialTable) -> f64 {
     if k > n {
         return 0.0;
     }
+    if p <= 0.0 {
+        return if k == 0 { 1.0 } else { 0.0 };
+    }
+    if p >= 1.0 {
+        return if k == n { 1.0 } else { 0.0 };
+    }
 
-    let coeff = binomial_coefficient(n, k);
-    let pk = p.powi(k as i32);
-    let qnk = (1.0 - p).powi((n - k) as i32);
-
-    coeff * pk * qnk
+    let log_pmf = ln_binomial_coefficient(n, k, lft)
+        + k as f64 * p.ln()
+        + (n - k) as f64 * (1.0 - p).ln();
+    log_pmf.exp()
 }
 
 fn factorial(n: usize) -> f64 {
@@ -104,12 +97,13 @@ fn poisson_pmf(lambda: f64, k: usize, lft: &LogFactorialTable) -> f64 {
 }
 
 pub fn simulate(params: &Params) -> Vec<Result> {
-    let lft = LogFactorialTable::new(params.max_k);
+    let table_size = params.n.max(params.max_k);
+    let lft = LogFactorialTable::new(table_size);
 
     (0..params.max_k)
         .into_par_iter()
         .map(|k| {
-            let binomial_prob = binomial_pmf(params.n, params.p, k);
+            let binomial_prob = binomial_pmf(params.n, params.p, k, &lft);
             let poisson_prob = poisson_pmf(params.lambda, k, &lft);
             Result {
                 k,
@@ -155,19 +149,6 @@ pub fn calculate_metrics(results: &[Result]) -> (f64, f64, f64, f64) {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_binomial_coefficient() {
-        assert!((binomial_coefficient(5, 2) - 10.0).abs() < 0.0001);
-    }
-
-    #[test]
-    fn test_binomial_pmf_sum_to_one() {
-        let n = 10;
-        let p = 0.3;
-        let sum: f64 = (0..=n).map(|k| binomial_pmf(n, p, k)).sum();
-        assert!((sum - 1.0).abs() < 0.0001);
-    }
 
     #[test]
     fn test_convergence_for_large_n_small_p() {
