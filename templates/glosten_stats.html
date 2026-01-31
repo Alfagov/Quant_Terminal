@@ -1,0 +1,154 @@
+<div
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full animate-fade-in"
+>
+  <!-- True Value Card -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-blue-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > True_Value
+      </div>
+      <div
+              class="text-blue-500/20 group-hover:text-blue-500 transition-colors"
+      >
+        <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+        >
+          <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          ></path>
+        </svg>
+      </div>
+    </div>
+    <div class="text-2xl text-white font-mono font-light mb-1">
+      ${{ true_value }}
+    </div>
+    <div
+            class="text-xs text-blue-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between items-center"
+    >
+      <span class="text-slate-600">STATE:</span>
+      <span
+              class="bg-blue-500/10 px-2 py-0.5 rounded text-[10px] uppercase"
+      >{{ true_state }}</span
+      >
+    </div>
+  </div>
+
+  <!-- Final Spread Card -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-yellow-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Final_Spread
+      </div>
+    </div>
+    <div class="text-2xl font-mono font-light {{ spread_class }}">
+      ${{ final_spread }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>PCT:</span>
+      <span>{{ spread_pct }}%</span>
+    </div>
+  </div>
+
+  <!-- Belief Card -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-purple-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Belief P(H)
+      </div>
+    </div>
+    <div class="text-2xl text-blue-400 font-mono font-light">
+      {{ final_belief }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>DELTA:</span>
+      <span class="text-slate-500">From {{ initial_belief }}</span>
+    </div>
+  </div>
+
+  <!-- Informed P&L -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-green-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Informed_PnL
+      </div>
+    </div>
+    <div class="text-2xl text-emerald-400 font-mono font-light">
+      +${{ informed_pnl }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>VOL:</span>
+      <span>{{ informed_count }} txns</span>
+    </div>
+  </div>
+
+  <!-- Noise P&L -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-red-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Noise_PnL
+      </div>
+    </div>
+    <div class="text-2xl text-red-400 font-mono font-light">
+      -${{ noise_pnl }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>VOL:</span>
+      <span>{{ noise_count }} txns</span>
+    </div>
+  </div>
+
+  <!-- Convergence -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-teal-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Convergence
+      </div>
+    </div>
+    <div class="text-2xl font-mono font-light {{ convergence_class }}">
+      {{ convergence_text }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2"
+    >
+      <span class="text-teal-500/70">> Price Discovery Complete</span>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Financial Models Platform</title>
+  <link href="/static/css/output.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"
+  />
+<!--  <script src="/static/tailwind-config.js"></script>-->
+  <link rel="stylesheet" href="/static/css/styles.css" />
+</head>
+<body
+        class="bg-slate-950 text-slate-200 min-h-screen relative overflow-x-hidden selection:bg-blue-500/30 selection:text-blue-200"
+>
+<!-- Background Effects -->
+<div class="fixed inset-0 pointer-events-none z-0">
+  <div
+          class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-blue-900/10 blur-[100px] rounded-full opacity-50"
+  ></div>
+  <div class="absolute inset-0 bg-grid-pattern opacity-[0.15]"></div>
+</div>
+
+<!-- Navigation -->
+<nav
+        class="fixed w-full z-50 top-0 transition-all duration-300 glass-panel border-b-0 border-b border-white/5"
+>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-20">
+      <div class="flex items-center gap-3">
+        <div
+                class="w-10 h-10 bg-blue-600/20 border border-blue-500/50 flex items-center justify-center shadow-lg shadow-blue-500/10"
+        >
+                            <span class="text-blue-400 font-bold text-xl"
+                            >Q</span
+                            >
+        </div>
+        <span
+                class="text-white text-lg font-bold tracking-tight"
+        >QUANT<span class="text-blue-400">SIM</span
+        >_TERMINAL</span
+        >
+      </div>
+      <div class="hidden md:flex items-center space-x-8">
+        <a
+                href="#models"
+                class="text-xs uppercase tracking-widest font-medium text-slate-400 hover:text-blue-400 transition-colors"
+        >Models</a
+        >
+        <a
+                href="#about"
+                class="text-xs uppercase tracking-widest font-medium text-slate-400 hover:text-blue-400 transition-colors"
+        >Docs</a
+        >
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Models Section -->
+<div
+        id="models"
+        class="z-10 mt-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16"
+>
+  <!-- Filters -->
+  <div
+          class="flex flex-col md:flex-row justify-between items-end mb-12 gap-6 border-b border-slate-800 pb-6"
+  >
+    <div>
+      <h2
+              class="text-2xl font-bold text-white mb-2 uppercase tracking-tight"
+      >
+        Directory: /MODELS
+      </h2>
+      <p class="text-slate-400 text-sm">
+        > Select executable to begin analysis.
+      </p>
+    </div>
+
+    <!-- Filter Buttons -->
+    <div class="flex flex-wrap gap-2">
+      <button
+              onclick="filterModels('all')"
+              class="filter-btn active px-3 py-1.5 text-xs font-bold uppercase tracking-wider border border-blue-500 bg-blue-500/10 text-blue-400 transition-all hover:bg-blue-500 hover:text-white"
+              data-filter="all"
+      >
+        ALL[*]
+      </button>
+      <button
+              onclick="filterModels('microstructure')"
+              class="filter-btn px-3 py-1.5 text-xs font-bold uppercase tracking-wider border border-slate-700 text-slate-400 transition-all hover:border-blue-500 hover:text-blue-400"
+              data-filter="microstructure"
+      >
+        MICROSTRUCTURE
+      </button>
+      <button
+              onclick="filterModels('stochastic')"
+              class="filter-btn px-3 py-1.5 text-xs font-bold uppercase tracking-wider border border-slate-700 text-slate-400 transition-all hover:border-blue-500 hover:text-blue-400"
+              data-filter="stochastic"
+      >
+        STOCHASTIC
+      </button>
+      <button
+              onclick="filterModels('pricing')"
+              class="filter-btn px-3 py-1.5 text-xs font-bold uppercase tracking-wider border border-slate-700 text-slate-400 transition-all hover:border-blue-500 hover:text-blue-400"
+              data-filter="pricing"
+      >
+        DERIVATIVES
+      </button>
+    </div>
+  </div>
+
+  <!-- Grid -->
+  <div
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          id="model-grid"
+  >
+    <!-- Card 1: Glosten-Milgrom -->
+    <div
+            class="model-card group relative bg-slate-900/50 border border-slate-800 hover:border-orange-500/50 transition-all duration-300 hover:-translate-y-1 flex flex-col h-full"
+            data-category="microstructure"
+    >
+      <div class="p-6 flex-grow">
+        <div class="flex justify-between items-start mb-6">
+          <div class="text-orange-500 font-bold text-2xl">
+            GM_MODEL
+          </div>
+          <span
+                  class="text-[10px] uppercase tracking-widest text-orange-500 border border-orange-500/30 px-2 py-1 bg-orange-500/5"
+          >Microstructure</span
+          >
+        </div>
+
+        <h3
+                class="text-lg font-bold text-white mb-3 group-hover:text-orange-400 transition-colors"
+        >
+          > Glosten-Milgrom
+        </h3>
+        <p class="text-slate-400 text-xs leading-relaxed mb-6">
+          Sequential trade model. Demonstrates spread widening
+          due to adverse selection from informed traders.
+        </p>
+
+        <div
+                class="flex flex-wrap gap-2 mt-auto font-mono text-[10px]"
+        >
+                            <span class="px-2 py-1 bg-slate-800 text-slate-300"
+                            >BAYESIAN_UPDATES</span
+                            >
+          <span class="px-2 py-1 bg-slate-800 text-slate-300"
+          >SPREAD_DYNAMICS</span
+          >
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-slate-800 bg-slate-900/80">
+        <a
+                href="/glosten-milgrom"
+                class="flex items-center justify-between w-full text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-orange-400 transition-colors"
+        >
+          <span>Run_Executable</span>
+          <span>-></span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Card 2: Binomial -> Poisson -->
+    <div
+            class="model-card group relative bg-slate-900/50 border border-slate-800 hover:border-purple-500/50 transition-all duration-300 hover:-translate-y-1 flex flex-col h-full"
+            data-category="stochastic"
+    >
+      <div class="p-6 flex-grow">
+        <div class="flex justify-between items-start mb-6">
+          <div class="text-purple-500 font-bold text-2xl">
+            RARE_EVT
+          </div>
+          <span
+                  class="text-[10px] uppercase tracking-widest text-purple-500 border border-purple-500/30 px-2 py-1 bg-purple-500/5"
+          >Probability</span
+          >
+        </div>
+
+        <h3
+                class="text-lg font-bold text-white mb-3 group-hover:text-purple-400 transition-colors"
+        >
+          > Limit Theorems
+        </h3>
+        <p class="text-slate-400 text-xs leading-relaxed mb-6">
+          Convergence of Binomial(n,p) to Poisson(λ) as n→∞.
+          Visualizing the Law of Rare Events.
+        </p>
+
+        <div
+                class="flex flex-wrap gap-2 mt-auto font-mono text-[10px]"
+        >
+                            <span class="px-2 py-1 bg-slate-800 text-slate-300"
+                            >CONVERGENCE</span
+                            >
+          <span class="px-2 py-1 bg-slate-800 text-slate-300"
+          >RISK_MODELING</span
+          >
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-slate-800 bg-slate-900/80">
+        <a
+                href="/binomial-poisson"
+                class="flex items-center justify-between w-full text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-purple-400 transition-colors"
+        >
+          <span>Run_Executable</span>
+          <span>-></span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Card 3: Brownian Motion -->
+    <div
+            class="model-card group relative bg-slate-900/50 border border-slate-800 hover:border-cyan-500/50 transition-all duration-300 hover:-translate-y-1 flex flex-col h-full"
+            data-category="stochastic"
+    >
+      <div class="p-6 flex-grow">
+        <div class="flex justify-between items-start mb-6">
+          <div class="text-cyan-500 font-bold text-2xl">
+            GBM_SIM
+          </div>
+          <span
+                  class="text-[10px] uppercase tracking-widest text-cyan-500 border border-cyan-500/30 px-2 py-1 bg-cyan-500/5"
+          >Stochastic</span
+          >
+        </div>
+
+        <h3
+                class="text-lg font-bold text-white mb-3 group-hover:text-cyan-400 transition-colors"
+        >
+          > Brownian Motion
+        </h3>
+        <p class="text-slate-400 text-xs leading-relaxed mb-6">
+          Continuous-time stochastic processes.
+          Drift/Diffusion parameters. First passage time
+          analysis.
+        </p>
+
+        <div
+                class="flex flex-wrap gap-2 mt-auto font-mono text-[10px]"
+        >
+                            <span class="px-2 py-1 bg-slate-800 text-slate-300"
+                            >MONTE_CARLO</span
+                            >
+          <span class="px-2 py-1 bg-slate-800 text-slate-300"
+          >WIENER_PROCESS</span
+          >
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-slate-800 bg-slate-900/80">
+        <a
+                href="/brownian-motion"
+                class="flex items-center justify-between w-full text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-cyan-400 transition-colors"
+        >
+          <span>Run_Executable</span>
+          <span>-></span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Card 4: Black Scholes -->
+    <div
+            class="model-card group relative bg-slate-900/50 border border-slate-800 hover:border-emerald-500/50 transition-all duration-300 hover:-translate-y-1 flex flex-col h-full"
+            data-category="pricing"
+    >
+      <div class="p-6 flex-grow">
+        <div class="flex justify-between items-start mb-6">
+          <div class="text-emerald-500 font-bold text-2xl">
+            BS_PDE
+          </div>
+          <span
+                  class="text-[10px] uppercase tracking-widest text-emerald-500 border border-emerald-500/30 px-2 py-1 bg-emerald-500/5"
+          >Pricing</span
+          >
+        </div>
+
+        <h3
+                class="text-lg font-bold text-white mb-3 group-hover:text-emerald-400 transition-colors"
+        >
+          > Black-Scholes
+        </h3>
+        <p class="text-slate-400 text-xs leading-relaxed mb-6">
+          Option pricing framework. Visualize Greek
+          sensitivities (Δ, Γ, Θ, ν) to market parameters.
+        </p>
+
+        <div
+                class="flex flex-wrap gap-2 mt-auto font-mono text-[10px]"
+        >
+                            <span class="px-2 py-1 bg-slate-800 text-slate-300"
+                            >HEDGING</span
+                            >
+          <span class="px-2 py-1 bg-slate-800 text-slate-300"
+          >PARTIAL_DIFF_EQ</span
+          >
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-slate-800 bg-slate-900/80">
+        <a
+                href="#"
+                class="flex items-center justify-between w-full text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-emerald-400 transition-colors"
+        >
+          <span>Run_Executable</span>
+          <span>-></span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div
+          id="empty-state"
+          class="hidden text-center py-20 border border-dashed border-slate-800 rounded-lg"
+  >
+    <div
+            class="inline-flex items-center justify-center w-12 h-12 bg-slate-800/50 mb-4 text-slate-500"
+    >
+      !
+    </div>
+    <h3
+            class="text-sm font-bold text-white uppercase tracking-wider"
+    >
+      No Modules Found
+    </h3>
+    <p class="text-slate-500 text-xs mt-2">
+      Adjust filter parameters.
+    </p>
+  </div>
+</div>
+
+<!-- About Section -->
+<div
+        id="about"
+        class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20"
+>
+  <div
+          class="glass-panel p-10 md:p-16 relative border-l-4 border-l-blue-600"
+  >
+    <div class="relative z-10">
+      <div class="mb-12">
+        <h2
+                class="text-2xl font-bold text-white mb-4 uppercase tracking-tight"
+        >
+          System Architecture
+        </h2>
+        <p class="text-slate-400 max-w-2xl text-sm">
+          // Powered by Rust<br />
+          // Optimized for high-frequency simulation logic
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8">
+        <div>
+          <h3
+                  class="text-blue-400 font-bold mb-2 uppercase text-sm"
+          >
+            [01] Type Safety
+          </h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Static typing eliminates runtime errors in
+            complex stochastic differential equations.
+          </p>
+        </div>
+        <div>
+          <h3
+                  class="text-blue-400 font-bold mb-2 uppercase text-sm"
+          >
+            [02] Performance
+          </h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Native code execution via Rust compiler.
+          </p>
+        </div>
+        <div>
+          <h3
+                  class="text-blue-400 font-bold mb-2 uppercase text-sm"
+          >
+            [03] Concurrency
+          </h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Async libraries handle concurrent simulation
+            streams and websocket data feeds.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="border-t border-slate-800 bg-slate-950 relative z-10">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div
+            class="flex flex-col md:flex-row justify-between items-center"
+    >
+      <div class="text-xs text-slate-500 font-mono">
+        SYSTEM_ID: 0x492A92
+      </div>
+      <p
+              class="text-slate-500 text-xs uppercase tracking-wider mt-2 md:mt-0"
+      >
+        &copy; 2025 Financial Models Platform
+      </p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // --- Filtering Logic ---
+  function filterModels(category) {
+    const buttons = document.querySelectorAll(".filter-btn");
+    buttons.forEach((btn) => {
+      if (btn.dataset.filter === category) {
+        btn.classList.add(
+                "bg-blue-500/10",
+                "text-blue-400",
+                "border-blue-500",
+        );
+        btn.classList.remove(
+                "text-slate-400",
+                "border-slate-700",
+        );
+      } else {
+        btn.classList.remove(
+                "bg-blue-500/10",
+                "text-blue-400",
+                "border-blue-500",
+        );
+        btn.classList.add("text-slate-400", "border-slate-700");
+      }
+    });
+
+    const cards = document.querySelectorAll(".model-card");
+    let visibleCount = 0;
+
+    cards.forEach((card) => {
+      if (
+              category === "all" ||
+              card.dataset.category === category
+      ) {
+        card.style.display = "flex";
+        setTimeout(() => {
+          card.classList.remove(
+                  "opacity-0",
+                  "scale-95",
+                  "hidden",
+          );
+          card.classList.add("opacity-100", "scale-100");
+        }, 50);
+        visibleCount++;
+      } else {
+        card.classList.remove("opacity-100", "scale-100");
+        card.classList.add("opacity-0", "scale-95");
+        setTimeout(() => {
+          card.style.display = "none";
+        }, 300);
+      }
+    });
+
+    const emptyState = document.getElementById("empty-state");
+    if (visibleCount === 0) {
+      emptyState.classList.remove("hidden");
+    } else {
+      emptyState.classList.add("hidden");
+    }
+  }
+</script>
+</body>
+</html>

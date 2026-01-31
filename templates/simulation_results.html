@@ -1,0 +1,9 @@
+<div id="stats-section" class="space-y-6">
+  <!-- Stats Cards -->
+  {{ stats_html|safe }}
+
+  <!-- Charts -->
+  {% for chart in charts %}
+  {{ chart|safe }}
+  {% endfor %}
+</div>

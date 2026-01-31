@@ -1,0 +1,118 @@
+<div
+        class="glass-panel rounded-xl p-6 border border-slate-700/50 relative overflow-hidden"
+>
+    <!-- Background glow effect -->
+    <div
+            class="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none"
+    ></div>
+
+    <h3
+            class="text-sm font-bold text-white uppercase tracking-wider mb-6 flex items-center gap-2"
+    >
+        <span
+                class="w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)]"
+        ></span>
+        {{ title }}
+    </h3>
+
+    <div style="height: 300px; position: relative">
+        <canvas id="{{ chart_id }}"></canvas>
+    </div>
+
+    <script>
+        (function() {
+            const ctx = document.getElementById('{{ chart_id }}').getContext('2d');
+
+            // Common chart aesthetic variables
+            const gridColor = 'rgba(51, 65, 85, 0.5)'; // slate-700 with opacity
+            const tickColor = '#94a3b8'; // slate-400
+            const fontFamily = "'IBM Plex Mono', monospace";
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: {{ labels|safe }},
+            datasets: [
+                {% for dataset in datasets %}
+            {
+                label: '{{ dataset.label }}',
+                    data: {{ dataset.data|safe }},
+                borderColor: '{{ dataset.border_color }}',
+                    backgroundColor: '{{ dataset.background_color }}',
+                borderWidth: {{ dataset.border_width }},
+                fill: {{ dataset.fill }},
+                tension: {{ dataset.tension }},
+                pointRadius: 0,
+                    pointHoverRadius: 4{% if dataset.border_dash.is_some() %},
+                borderDash: {{ dataset.border_dash.as_ref().unwrap()|safe }}{% endif %}
+            }{% if !loop.last %},{% endif %}
+            {% endfor %}
+        ]
+        },
+            options: {
+                responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                    mode: 'index',
+                        intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        display: {{ legend_display }},
+                        labels: {
+                            color: '#cbd5e1',
+                                font: { family: fontFamily, size: 11 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleColor: '#fff',
+                            bodyColor: '#cbd5e1',
+                            borderColor: 'rgba(59, 130, 246, 0.3)',
+                            borderWidth: 1,
+                            titleFont: { family: fontFamily },
+                        bodyFont: { family: fontFamily },
+                        padding: 10,
+                            cornerRadius: 4,
+                            displayColors: true
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: gridColor,
+                                borderColor: gridColor
+                        },
+                        ticks: {
+                            color: tickColor,
+                                font: { family: fontFamily, size: 10 }
+                        },
+                        title: {
+                            display: true,
+                                text: '{{ x_axis_label }}',
+                                color: '#64748b',
+                                font: { family: fontFamily, size: 10, weight: 'bold' }
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: gridColor,
+                                borderColor: gridColor
+                        },
+                        ticks: {
+                            color: tickColor,
+                                font: { family: fontFamily, size: 10 }
+                        },
+                        title: {
+                            display: true,
+                                text: '{{ y_axis_label }}',
+                                color: '#64748b',
+                                font: { family: fontFamily, size: 10, weight: 'bold' }
+                        }
+                    }
+                }
+            }
+        });
+        })();
+    </script>
+</div>

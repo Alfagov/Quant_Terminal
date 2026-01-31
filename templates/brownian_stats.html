@@ -1,0 +1,317 @@
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full animate-fade-in">
+  <!-- Model Type -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-blue-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Model_Type
+      </div>
+    </div>
+    <div class="text-xl text-white font-mono font-light truncate">
+      {{ motion_type }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>INIT:</span>
+      <span class="text-slate-500">S₀ = ${{ s0 }}</span>
+    </div>
+  </div>
+
+  <!-- Drift -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-blue-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Drift (μ)
+      </div>
+    </div>
+    <div class="text-2xl text-blue-400 font-mono font-light">{{ mu }}</div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>FREQ:</span>
+      <span class="text-slate-500">Annualized</span>
+    </div>
+  </div>
+
+  <!-- Volatility -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-orange-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Volatility (σ)
+      </div>
+    </div>
+    <div class="text-2xl text-orange-400 font-mono font-light">
+      {{ sigma }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>RISK:</span>
+      <span class="text-slate-500">Annualized</span>
+    </div>
+  </div>
+
+  <!-- Time Horizon -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-blue-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Horizon (T)
+      </div>
+    </div>
+    <div class="text-2xl text-white font-mono font-light">{{ t }}</div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>UNIT:</span>
+      <span class="text-slate-500">Years</span>
+    </div>
+  </div>
+
+  <!-- Mean Final Value -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-emerald-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Mean_Final
+      </div>
+    </div>
+    <div class="text-2xl text-emerald-400 font-mono font-light">
+      ${{ mean_final }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 truncate"
+    >
+            <span class="text-slate-500"
+            >95% CI: [{{ ci_lower }}, {{ ci_upper }}]</span
+            >
+    </div>
+  </div>
+
+  <!-- Std Deviation -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-purple-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Std_Dev
+      </div>
+    </div>
+    <div class="text-2xl text-purple-400 font-mono font-light">
+      ${{ std_final }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>SPREAD:</span>
+      <span class="text-slate-500">Final Value</span>
+    </div>
+  </div>
+
+  <!-- Mean Return -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-blue-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Mean_Return
+      </div>
+    </div>
+    <div class="text-2xl text-blue-400 font-mono font-light">
+      {{ mean_return }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>PERIOD:</span>
+      <span class="text-slate-500">T={{ t }}</span>
+    </div>
+  </div>
+
+  <!-- Realized Volatility -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-orange-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Realized_Vol
+      </div>
+    </div>
+    <div class="text-2xl text-orange-400 font-mono font-light">
+      {{ vol_realized }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>METRIC:</span>
+      <span class="text-slate-500">Ret Std Dev</span>
+    </div>
+  </div>
+
+  <!-- Mean Max -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-emerald-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Mean_Max
+      </div>
+    </div>
+    <div class="text-2xl text-emerald-400 font-mono font-light">
+      ${{ mean_max }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>SCOPE:</span>
+      <span class="text-slate-500">All Paths</span>
+    </div>
+  </div>
+
+  <!-- Mean Min -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-red-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Mean_Min
+      </div>
+    </div>
+    <div class="text-2xl text-red-400 font-mono font-light">
+      ${{ mean_min }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>SCOPE:</span>
+      <span class="text-slate-500">All Paths</span>
+    </div>
+  </div>
+
+  {% if has_upper_barrier %}
+  <!-- Upper Hit Prob -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-red-500/50 transition-all overflow-hidden"
+  >
+    <div
+            class="absolute top-0 right-0 w-3 h-3 bg-red-500/20 border-l border-b border-red-500/50"
+    ></div>
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Upper_Hit_Prob
+      </div>
+    </div>
+    <div class="text-2xl text-red-400 font-mono font-light">
+      {{ prob_upper }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>BARRIER:</span>
+      <span class="text-red-400">${{ upper_barrier_value }}</span>
+    </div>
+  </div>
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-red-500/50 transition-all overflow-hidden"
+  >
+    <div
+            class="absolute top-0 right-0 w-3 h-3 bg-red-500/20 border-l border-b border-red-500/50"
+    ></div>
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Prob_Ends_Above_Barrier
+      </div>
+    </div>
+    <div class="text-2xl text-red-400 font-mono font-light">
+      {{ prob_ends_upper }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>BARRIER:</span>
+      <span class="text-red-400">${{ upper_barrier_value }}</span>
+    </div>
+  </div>
+  {% endif %}
+  {% if has_lower_barrier %}
+  <!-- Lower Hit Prob -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-red-500/50 transition-all overflow-hidden"
+  >
+    <div
+            class="absolute bottom-0 right-0 w-3 h-3 bg-red-500/20 border-l border-t border-red-500/50"
+    ></div>
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Lower_Hit_Prob
+      </div>
+    </div>
+    <div class="text-2xl text-red-400 font-mono font-light">
+      {{ prob_lower }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>BARRIER:</span>
+      <span class="text-red-400">${{ lower_barrier_value }}</span>
+    </div>
+  </div>
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-red-500/50 transition-all overflow-hidden"
+  >
+    <div
+            class="absolute top-0 right-0 w-3 h-3 bg-red-500/20 border-l border-b border-red-500/50"
+    ></div>
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Prob_Ends_Below_Barrier
+      </div>
+    </div>
+    <div class="text-2xl text-red-400 font-mono font-light">
+      {{ prob_ends_lower }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>BARRIER:</span>
+      <span class="text-red-400">${{ lower_barrier_value }}</span>
+    </div>
+  </div>
+  {% endif %}
+</div>

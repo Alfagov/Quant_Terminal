@@ -1,0 +1,32 @@
+[package]
+name = "Quant_Terminal"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = { version = "0.8", features = ["macros"] }
+tokio = { version = "1", features = ["full"] }
+tower = { version = "0.5", features = ["full"] }
+tower-http = { version = "0.6", features = ["fs", "trace", "cors", "limit"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+nalgebra = "0.34"
+rand = "0.9"
+rand_distr = "0.5"
+anyhow = "1"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tower_governor = "0.8"
+validator = { version = "0.20", features = ["derive"] }
+once_cell = "1"
+rand_chacha = { version = "0.9.0", features = ["default"] }
+askama = { version = "0.15.4", features = ["full"] }
+
+[dev-dependencies]
+criterion = "0.8"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3

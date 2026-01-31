@@ -1,0 +1,173 @@
+<div
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full animate-fade-in"
+>
+  <!-- Trials (n) -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-blue-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Trials (n)
+      </div>
+    </div>
+    <div class="text-2xl text-white font-mono font-light">{{ n }}</div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>COUNT:</span>
+      <span class="text-slate-500">Total Iterations</span>
+    </div>
+  </div>
+
+  <!-- Probability (p) -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-blue-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Prob (p)
+      </div>
+    </div>
+    <div class="text-2xl text-blue-400 font-mono font-light">{{ p }}</div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>RATE:</span>
+      <span class="text-slate-500">Per Trial</span>
+    </div>
+  </div>
+
+  <!-- Lambda -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-purple-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Lambda (λ)
+      </div>
+    </div>
+    <div class="text-2xl text-purple-400 font-mono font-light">
+      {{ lambda }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>E[X]:</span>
+      <span class="text-purple-400/70">{{ np_value }}</span>
+    </div>
+  </div>
+
+  <!-- Convergence Quality -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-teal-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Quality
+      </div>
+    </div>
+    <div class="text-2xl font-mono font-light {{ quality_class }}">
+      {{ convergence_quality }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>STATUS:</span>
+      <span class="text-slate-500">TV Distance</span>
+    </div>
+  </div>
+
+  <!-- Total Variation Distance -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-orange-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > TV_Distance
+      </div>
+    </div>
+    <div class="text-2xl text-orange-400 font-mono font-light">
+      {{ total_variation }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>EQ:</span>
+      <span class="text-slate-500">½ Σ|P - Q|</span>
+    </div>
+  </div>
+
+  <!-- Max Absolute Error -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-red-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > Max_Abs_Err
+      </div>
+    </div>
+    <div class="text-2xl text-red-400 font-mono font-light">
+      {{ max_error }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>TYPE:</span>
+      <span class="text-slate-500">L-Infinity</span>
+    </div>
+  </div>
+
+  <!-- Mean Squared Error -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-pink-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > MSE
+      </div>
+    </div>
+    <div class="text-2xl text-pink-400 font-mono font-light">{{ mse }}</div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>AVG:</span>
+      <span class="text-slate-500">Sq Error</span>
+    </div>
+  </div>
+
+  <!-- KL Divergence -->
+  <div
+          class="glass-panel p-4 border border-slate-700 relative group hover:border-indigo-500/30 transition-all"
+  >
+    <div class="flex justify-between items-start mb-2">
+      <div
+              class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+      >
+        > KL_Divergence
+      </div>
+    </div>
+    <div class="text-2xl text-indigo-400 font-mono font-light">
+      {{ kl_divergence }}
+    </div>
+    <div
+            class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between"
+    >
+      <span>ENTROPY:</span>
+      <span class="text-slate-500">Relative</span>
+    </div>
+  </div>
+</div>
