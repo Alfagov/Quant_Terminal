@@ -4,9 +4,10 @@ use serde::{Deserialize, Serialize};
 use validator::Validate;
 use rand_chacha::rand_core::SeedableRng;
 use rand_distr::Normal;
+use rayon::prelude::*;
 
-const MAX_STEPS: usize = 10_000;
-const MAX_PATHS: usize = 1_000;
+const MAX_STEPS: usize = 1_000;
+const MAX_PATHS: usize = 20_000;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum MotionType {
@@ -22,9 +23,9 @@ pub struct Params {
     pub sigma: f64,
     #[validate(range(min = 0.0))]
     pub t: f64,
-    #[validate(range(min = 1, max = 10000))]
+    #[validate(range(min = 1, max = MAX_STEPS))]
     pub steps: usize,
-    #[validate(range(min = 1, max = 1000))]
+    #[validate(range(min = 1, max = MAX_PATHS))]
     pub num_paths: usize,
     pub motion_type: MotionType,
     pub upper_barrier: Option<f64>,
@@ -82,151 +83,142 @@ pub struct SimulationResult {
     pub volatility_realized: f64,
 }
 
-pub struct Simulation {
-    rng: ChaCha8Rng,
+fn simulate_path(params: &Params) -> PathResult {
+    let mut rng = ChaCha8Rng::from_rng(&mut rand::rng());
+    let dt = params.t / params.steps as f64;
+    let sqrt_dt = dt.sqrt();
+    let normal = Normal::new(0.0, 1.0).unwrap();
+
+    let mut times = Vec::with_capacity(params.steps + 1);
+    let mut values = Vec::with_capacity(params.steps + 1);
+    let mut current_value = params.s0;
+    let mut hit_upper = false;
+    let mut hit_lower = false;
+    let mut fpt_upper = None;
+    let mut fpt_lower = None;
+
+    times.push(0.0);
+    values.push(params.s0);
+
+    for i in 1..=params.steps {
+        let dw = normal.sample(&mut rng) * sqrt_dt;
+
+        current_value = match params.motion_type {
+            MotionType::Standard => {
+                current_value + params.mu * dt + params.sigma * dw
+            }
+            MotionType::Geometric => {
+                current_value
+                    * ((params.mu - 0.5 * params.sigma * params.sigma) * dt
+                    + params.sigma * dw)
+                    .exp()
+            }
+        };
+
+        let current_time = i as f64 * dt;
+
+        // Check barriers
+        if let Some(barrier) = params.upper_barrier {
+            if current_value >= barrier && !hit_upper {
+                hit_upper = true;
+                fpt_upper = Some(current_time);
+            }
+        }
+
+        if let Some(barrier) = params.lower_barrier {
+            if current_value <= barrier && !hit_lower {
+                hit_lower = true;
+                fpt_lower = Some(current_time);
+            }
+        }
+
+        times.push(current_time);
+        values.push(current_value);
+    }
+
+    let final_val = *values.last().unwrap();
+    let max_value = values.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+    let min_value = values.iter().cloned().fold(f64::INFINITY, f64::min);
+
+    let ends_above = params
+        .upper_barrier
+        .map(|b| final_val >= b)
+        .unwrap_or(false);
+
+    let ends_below = params
+        .lower_barrier
+        .map(|b| final_val <= b)
+        .unwrap_or(false);
+
+    PathResult {
+        times,
+        values,
+        max_value,
+        min_value,
+        final_value: final_val,
+        hit_upper_barrier: hit_upper,
+        hit_lower_barrier: hit_lower,
+        ends_above_upper: ends_above,
+        ends_below_lower: ends_below,
+        first_passage_time_upper: fpt_upper,
+        first_passage_time_lower: fpt_lower,
+    }
 }
 
-impl Simulation {
-    pub fn new() -> Self {
-        Self {
-            rng: ChaCha8Rng::seed_from_u64(42),
-        }
-    }
+pub fn run(params: &Params) -> SimulationResult {
+    let paths: Vec<PathResult> = (0..params.num_paths)
+        .into_par_iter()
+        .map(|_| simulate_path(params))
+        .collect();
 
-    fn simulate_path(&mut self, params: &Params) -> PathResult {
-        let dt = params.t / params.steps as f64;
-        let sqrt_dt = dt.sqrt();
-        let normal = Normal::new(0.0, 1.0).unwrap();
+    let n = paths.len() as f64;
+    let final_values: Vec<f64> = paths.iter().map(|p| p.final_value).collect();
 
-        let mut times = Vec::with_capacity(params.steps + 1);
-        let mut values = Vec::with_capacity(params.steps + 1);
-        let mut current_value = params.s0;
-        let mut hit_upper = false;
-        let mut hit_lower = false;
-        let mut fpt_upper = None;
-        let mut fpt_lower = None;
+    let mean_final = final_values.iter().sum::<f64>() / n;
+    let variance_final = final_values
+        .iter()
+        .map(|x| (x - mean_final).powi(2))
+        .sum::<f64>()
+        / n;
+    let std_final = variance_final.sqrt();
 
-        times.push(0.0);
-        values.push(params.s0);
+    let mean_max = paths.iter().map(|p| p.max_value).sum::<f64>() / n;
+    let mean_min = paths.iter().map(|p| p.min_value).sum::<f64>() / n;
 
-        for i in 1..=params.steps {
-            let dw = normal.sample(&mut self.rng) * sqrt_dt;
+    let prob_hit_upper = paths.iter().filter(|p| p.hit_upper_barrier).count() as f64 / n;
+    let prob_hit_lower = paths.iter().filter(|p| p.hit_lower_barrier).count() as f64 / n;
+    let prob_end_above = paths.iter().filter(|p| p.ends_above_upper).count() as f64 / n;
+    let prob_end_below = paths.iter().filter(|p| p.ends_below_lower).count() as f64 / n;
 
-            current_value = match params.motion_type {
-                MotionType::Standard => {
-                    current_value + params.mu * dt + params.sigma * dw
-                }
-                MotionType::Geometric => {
-                    current_value
-                        * ((params.mu - 0.5 * params.sigma * params.sigma) * dt
-                        + params.sigma * dw)
-                        .exp()
-                }
-            };
+    let mean_return = (mean_final - params.s0) / params.s0;
+    let returns: Vec<f64> = final_values
+        .iter()
+        .map(|v| (v - params.s0) / params.s0)
+        .collect();
+    let mean_ret = returns.iter().sum::<f64>() / n;
+    let var_ret = returns
+        .iter()
+        .map(|r| (r - mean_ret).powi(2))
+        .sum::<f64>()
+        / n;
+    let vol_realized = var_ret.sqrt();
 
-            let current_time = i as f64 * dt;
-
-            // Check barriers
-            if let Some(barrier) = params.upper_barrier {
-                if current_value >= barrier && !hit_upper {
-                    hit_upper = true;
-                    fpt_upper = Some(current_time);
-                }
-            }
-
-            if let Some(barrier) = params.lower_barrier {
-                if current_value <= barrier && !hit_lower {
-                    hit_lower = true;
-                    fpt_lower = Some(current_time);
-                }
-            }
-
-            times.push(current_time);
-            values.push(current_value);
-        }
-
-        let final_val = *values.last().unwrap();
-        let max_value = values.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-        let min_value = values.iter().cloned().fold(f64::INFINITY, f64::min);
-
-        let ends_above = params
-            .upper_barrier
-            .map(|b| final_val >= b)
-            .unwrap_or(false);
-
-        let ends_below = params
-            .lower_barrier
-            .map(|b| final_val <= b)
-            .unwrap_or(false);
-
-        PathResult {
-            times,
-            values,
-            max_value,
-            min_value,
-            final_value: final_val,
-            hit_upper_barrier: hit_upper,
-            hit_lower_barrier: hit_lower,
-            ends_above_upper: ends_above,
-            ends_below_lower: ends_below,
-            first_passage_time_upper: fpt_upper,
-            first_passage_time_lower: fpt_lower,
-        }
-    }
-
-    pub fn run(&mut self, params: &Params) -> SimulationResult {
-        let paths: Vec<PathResult> = (0..params.num_paths)
-            .map(|_| self.simulate_path(params))
-            .collect();
-
-        let n = paths.len() as f64;
-        let final_values: Vec<f64> = paths.iter().map(|p| p.final_value).collect();
-
-        let mean_final = final_values.iter().sum::<f64>() / n;
-        let variance_final = final_values
-            .iter()
-            .map(|x| (x - mean_final).powi(2))
-            .sum::<f64>()
-            / n;
-        let std_final = variance_final.sqrt();
-
-        let mean_max = paths.iter().map(|p| p.max_value).sum::<f64>() / n;
-        let mean_min = paths.iter().map(|p| p.min_value).sum::<f64>() / n;
-
-        let prob_hit_upper = paths.iter().filter(|p| p.hit_upper_barrier).count() as f64 / n;
-        let prob_hit_lower = paths.iter().filter(|p| p.hit_lower_barrier).count() as f64 / n;
-        let prob_end_above = paths.iter().filter(|p| p.ends_above_upper).count() as f64 / n;
-        let prob_end_below = paths.iter().filter(|p| p.ends_below_lower).count() as f64 / n;
-
-        let mean_return = (mean_final - params.s0) / params.s0;
-        let returns: Vec<f64> = final_values
-            .iter()
-            .map(|v| (v - params.s0) / params.s0)
-            .collect();
-        let mean_ret = returns.iter().sum::<f64>() / n;
-        let var_ret = returns
-            .iter()
-            .map(|r| (r - mean_ret).powi(2))
-            .sum::<f64>()
-            / n;
-        let vol_realized = var_ret.sqrt();
-
-        SimulationResult {
-            paths,
-            dt: params.t / params.steps as f64,
-            mean_final_value: mean_final,
-            std_final_value: std_final,
-            mean_max_value: mean_max,
-            mean_min_value: mean_min,
-            prob_hit_upper,
-            prob_hit_lower,
-            prob_end_above_upper: prob_end_above,
-            prob_end_below_lower: prob_end_below,
-            mean_return,
-            volatility_realized: vol_realized,
-        }
+    SimulationResult {
+        paths,
+        dt: params.t / params.steps as f64,
+        mean_final_value: mean_final,
+        std_final_value: std_final,
+        mean_max_value: mean_max,
+        mean_min_value: mean_min,
+        prob_hit_upper,
+        prob_hit_lower,
+        prob_end_above_upper: prob_end_above,
+        prob_end_below_lower: prob_end_below,
+        mean_return,
+        volatility_realized: vol_realized,
     }
 }
+
 
 pub fn final_value_distribution(result: &SimulationResult, num_bins: usize) -> (Vec<f64>, Vec<usize>) {
     let final_values: Vec<f64> = result.paths.iter().map(|p| p.final_value).collect();
@@ -327,8 +319,7 @@ mod tests {
             lower_barrier: None,
         };
 
-        let mut sim = Simulation::new();
-        let result = sim.run(&params);
+        let result = run(&params);
 
         assert_eq!(result.paths.len(), 10);
         assert!(result.mean_final_value > 0.0);
@@ -348,8 +339,7 @@ mod tests {
             lower_barrier: Some(50.0),
         };
 
-        let mut sim = Simulation::new();
-        let result = sim.run(&params);
+        let result = run(&params);
 
         // At least some paths should hit barriers with high volatility
         assert!(result.prob_hit_upper > 0.0 || result.prob_hit_lower > 0.0);

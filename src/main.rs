@@ -50,7 +50,7 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "portfolio_manager=debug,tower_http=debug".into()),
+                .unwrap_or_else(|_| "quant_sim=debug,tower_http=debug".into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -83,11 +83,12 @@ async fn main() -> anyhow::Result<()> {
                 .layer(BufferLayer::new(1024))
                 .layer(TimeoutLayer::new(SecurityLimits::REQUEST_TIMEOUT))
                 .layer(RequestBodyLimitLayer::new(SecurityLimits::MAX_BODY_SIZE))
+                .layer(TraceLayer::new_for_http())
         );
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
-    tracing::info!("Starting server on {}", addr);
-    tracing::info!("Open http://localhost:8080 in your browser");
+    let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
+    println!("Starting server on {}", addr);
+    println!("Open http://localhost:8080 in your browser");
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;

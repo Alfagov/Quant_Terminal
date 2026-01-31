@@ -538,8 +538,7 @@ pub async fn simulate_brownian_motion(
         .validate_limits()
         .map_err(AppError::ValidationError)?;
 
-    let mut sim = brownian_motion::Simulation::new();
-    let result = sim.run(&params);
+    let result = brownian_motion::run(&params);
 
     // Generate stats
     let motion_type_str = match motion_type {
