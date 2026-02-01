@@ -8,7 +8,7 @@ use statrs::distribution::Normal;
 use tokio::task::JoinError;
 use validator::Validate;
 use crate::charts::{create_dataset, create_dataset_with_dash, render_chart, Dataset};
-use crate::{binomial_poisson, black_scholes, brownian_motion, market_maker};
+use crate::{binomial_poisson, black_scholes, brownian_motion, market_maker, option_strategies};
 use crate::brownian_motion::SimulationResult;
 
 pub enum AppError {
@@ -145,6 +145,34 @@ pub struct SimulationResultsTemplate {
     pub greeks_charts: Vec<String>,
 }
 
+pub struct LegDisplay {
+    pub index: usize,
+    pub option_type: String,
+    pub strike: String,
+    pub quantity: String,
+    pub price: String,
+    pub delta: String,
+    pub gamma: String,
+}
+
+#[derive(Template)]
+#[template(path = "option_strategies_stats.html")]
+pub struct OptionStrategiesStatsTemplate {
+    pub net_premium: String,
+    pub net_premium_class: String,
+    pub premium_label: String,
+    pub max_profit: String,
+    pub max_loss: String,
+    pub breakevens: String,
+    pub breakeven_count: usize,
+    pub net_delta: String,
+    pub net_gamma: String,
+    pub net_theta: String,
+    pub net_vega: String,
+    pub net_rho: String,
+    pub legs: Vec<LegDisplay>,
+}
+
 // Static file handlers
 pub async fn serve_index() -> Result<Html<String>, AppError> {
     serve_static_file("index.html").await
@@ -168,6 +196,10 @@ pub async fn serve_brownian_motion() -> Result<Html<String>, AppError> {
 
 pub async fn serve_black_scholes() -> Result<Html<String>, AppError> {
     serve_static_file("black-scholes.html").await
+}
+
+pub async fn serve_option_strategies() -> Result<Html<String>, AppError> {
+    serve_static_file("option-strategies.html").await
 }
 
 async fn serve_static_file(filename: &str) -> Result<Html<String>, AppError> {
@@ -703,11 +735,11 @@ pub async fn simulate_glosten(
         )?,
         render_chart(
             "pnlChart",
-            "Cumulative Trader P&L",
+            "Cumulative Trader PnL",
             &time_steps,
             vec![
                 create_dataset(
-                    "Informed Traders P&L",
+                    "Informed Traders PnL",
                     &informed_pnl,
                     "#10b981",
                     "rgba(16, 185, 129, 0.1)",
@@ -715,7 +747,7 @@ pub async fn simulate_glosten(
                     true,
                 ),
                 create_dataset(
-                    "Noise Traders P&L",
+                    "Noise Traders PnL",
                     &noise_pnl,
                     "#ef4444",
                     "rgba(239, 68, 68, 0.1)",
@@ -724,7 +756,7 @@ pub async fn simulate_glosten(
                 ),
             ],
             "Time Step",
-            "Cumulative P&L ($)",
+            "Cumulative PnL ($)",
             true,
         )?,
         render_chart(
@@ -882,6 +914,265 @@ pub async fn simulate_binomial_poisson(
         stats_html,
         charts,
         greeks_charts: vec![],
+    };
+
+    let html = result_template.render()?;
+    Ok(Html(html))
+}
+
+// Option Strategies handler
+#[derive(Debug, Deserialize)]
+pub struct OptionStrategyForm {
+    s: f64,
+    t: f64,
+    r: f64,
+    sigma: f64,
+    num_points: usize,
+    legs_json: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct LegInput {
+    option_type: String,
+    strike: f64,
+    quantity: i32,
+}
+
+pub async fn analyze_option_strategy(
+    Form(form): Form<OptionStrategyForm>,
+) -> Result<Html<String>, AppError> {
+    let leg_inputs: Vec<LegInput> = serde_json::from_str(&form.legs_json)
+        .map_err(|e| AppError::ValidationError(format!("Invalid legs data: {}", e)))?;
+
+    let legs: Vec<option_strategies::Leg> = leg_inputs
+        .iter()
+        .map(|li| option_strategies::Leg {
+            option_type: if li.option_type == "Call" {
+                black_scholes::OptionType::Call
+            } else {
+                black_scholes::OptionType::Put
+            },
+            strike: li.strike,
+            quantity: li.quantity,
+        })
+        .collect();
+
+    let params = option_strategies::StrategyParams {
+        spot: form.s,
+        t: form.t,
+        r: form.r,
+        sigma: form.sigma,
+        legs: legs.clone(),
+        num_points: form.num_points,
+    };
+
+    params.validate().map_err(AppError::ValidationError)?;
+
+    let result = tokio::task::spawn_blocking(move || option_strategies::analyze_strategy(&params))
+        .await?;
+
+    // Build per-leg display data
+    let legs_display: Vec<LegDisplay> = legs
+        .iter()
+        .enumerate()
+        .map(|(i, leg)| {
+            let type_str = match leg.option_type {
+                black_scholes::OptionType::Call => "Call",
+                black_scholes::OptionType::Put => "Put",
+            };
+            LegDisplay {
+                index: i + 1,
+                option_type: type_str.to_string(),
+                strike: format!("{:.2}", leg.strike),
+                quantity: format!("{:+}", leg.quantity),
+                price: format!("{:.4}", result.leg_prices[i]),
+                delta: format!("{:.4}", result.leg_greeks[i].delta),
+                gamma: format!("{:.6}", result.leg_greeks[i].gamma),
+            }
+        })
+        .collect();
+
+    let premium_is_debit = result.net_premium > 0.0;
+
+    let stats_template = OptionStrategiesStatsTemplate {
+        net_premium: format!("${:.2}", result.net_premium.abs()),
+        net_premium_class: if premium_is_debit {
+            "text-red-400"
+        } else {
+            "text-emerald-400"
+        }
+            .to_string(),
+        premium_label: if premium_is_debit { "DEBIT" } else { "CREDIT" }.to_string(),
+        max_profit: if result.max_profit > 1e6 {
+            "Unlimited".to_string()
+        } else {
+            format!("${:.2}", result.max_profit)
+        },
+        max_loss: if result.max_loss < -1e6 {
+            "Unlimited".to_string()
+        } else {
+            format!("${:.2}", result.max_loss)
+        },
+        breakevens: result
+            .breakeven_points
+            .iter()
+            .map(|b| format!("${:.2}", b))
+            .collect::<Vec<_>>()
+            .join(", "),
+        breakeven_count: result.breakeven_points.len(),
+        net_delta: format!("{:.4}", result.net_greeks.delta),
+        net_gamma: format!("{:.6}", result.net_greeks.gamma),
+        net_theta: format!("{:.4}", result.net_greeks.theta / 365.0),
+        net_vega: format!("{:.4}", result.net_greeks.vega / 100.0),
+        net_rho: format!("{:.4}", result.net_greeks.rho / 100.0),
+        legs: legs_display,
+    };
+
+    let stats_html = stats_template.render()?;
+
+    let spot_labels: Vec<i32> = result.spot_range.iter().map(|s| *s as i32).collect();
+
+    let charts = vec![
+        render_chart(
+            "payoffChart",
+            "Strategy Payoff & PnL at Expiry",
+            &spot_labels,
+            vec![
+                create_dataset(
+                    "Payoff at Expiry",
+                    &result.payoff_at_expiry,
+                    "#10b981",
+                    "rgba(16, 185, 129, 0.05)",
+                    2,
+                    false,
+                ),
+                create_dataset(
+                    "PnL at Expiry",
+                    &result.pnl_at_expiry,
+                    "#3b82f6",
+                    "rgba(59, 130, 246, 0.1)",
+                    3,
+                    true,
+                ),
+                create_dataset_with_dash(
+                    "Breakeven",
+                    &vec![0.0; spot_labels.len()],
+                    "#94a3b8",
+                    "rgba(0, 0, 0, 0)",
+                    1,
+                    false,
+                    vec![5, 5],
+                ),
+            ],
+            "Spot Price ($)",
+            "Profit / Loss ($)",
+            true,
+        )?,
+        render_chart(
+            "currentValueChart",
+            "Current Strategy Value vs Spot",
+            &spot_labels,
+            vec![create_dataset(
+                "Strategy Value",
+                &result.current_value,
+                "#8b5cf6",
+                "rgba(139, 92, 246, 0.1)",
+                2,
+                true,
+            )],
+            "Spot Price ($)",
+            "Value ($)",
+            false,
+        )?,
+    ];
+
+    let greeks_charts = vec![
+        render_chart(
+            "netDeltaChart",
+            "Net Delta (\u{0394}) vs Spot Price",
+            &spot_labels,
+            vec![create_dataset(
+                "Net Delta",
+                &result.net_deltas,
+                "#10b981",
+                "rgba(16, 185, 129, 0.1)",
+                2,
+                true,
+            )],
+            "Spot Price ($)",
+            "Delta",
+            false,
+        )?,
+        render_chart(
+            "netGammaChart",
+            "Net Gamma (\u{0393}) vs Spot Price",
+            &spot_labels,
+            vec![create_dataset(
+                "Net Gamma",
+                &result.net_gammas,
+                "#06b6d4",
+                "rgba(6, 182, 212, 0.1)",
+                2,
+                true,
+            )],
+            "Spot Price ($)",
+            "Gamma",
+            false,
+        )?,
+        render_chart(
+            "netThetaChart",
+            "Net Theta (\u{0398}) vs Spot Price \u{2014} Per Day",
+            &spot_labels,
+            vec![create_dataset(
+                "Net Theta (per day)",
+                &result.net_thetas,
+                "#f59e0b",
+                "rgba(245, 158, 11, 0.1)",
+                2,
+                true,
+            )],
+            "Spot Price ($)",
+            "Theta ($/day)",
+            false,
+        )?,
+        render_chart(
+            "netVegaChart",
+            "Net Vega (\u{03BD}) vs Spot Price \u{2014} Per 1% Vol",
+            &spot_labels,
+            vec![create_dataset(
+                "Net Vega (per 1% vol)",
+                &result.net_vegas,
+                "#8b5cf6",
+                "rgba(139, 92, 246, 0.1)",
+                2,
+                true,
+            )],
+            "Spot Price ($)",
+            "Vega",
+            false,
+        )?,
+        render_chart(
+            "netRhoChart",
+            "Net Rho (\u{03C1}) vs Spot Price \u{2014} Per 1% Rate",
+            &spot_labels,
+            vec![create_dataset(
+                "Net Rho (per 1% rate)",
+                &result.net_rhos,
+                "#3b82f6",
+                "rgba(59, 130, 246, 0.1)",
+                2,
+                true,
+            )],
+            "Spot Price ($)",
+            "Rho",
+            false,
+        )?,
+    ];
+
+    let result_template = SimulationResultsTemplate {
+        stats_html,
+        charts,
+        greeks_charts,
     };
 
     let html = result_template.render()?;

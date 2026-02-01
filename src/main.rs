@@ -22,6 +22,7 @@ mod handlers;
 mod charts;
 mod black_scholes;
 mod utils;
+mod option_strategies;
 
 pub struct SecurityLimits;
 
@@ -75,6 +76,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/simulate-binomial-poisson", post(handlers::simulate_binomial_poisson))
         .route("/simulate-brownian-motion", post(handlers::simulate_brownian_motion))
         .route("/simulate-black-scholes", post(handlers::simulate_black_scholes))
+        .route("/option-strategies", get(handlers::serve_option_strategies))
+        .route("/analyze-strategy", post(handlers::analyze_option_strategy))
 
         .nest_service("/static", ServeDir::new("static"))
 

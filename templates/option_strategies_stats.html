@@ -1,0 +1,210 @@
+<div class="w-full animate-fade-in space-y-4">
+  <!-- Primary Stats -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <!-- Net Premium -->
+    <div class="glass-panel p-4 border border-slate-700 relative group hover:border-amber-500/30 transition-all">
+      <div class="flex justify-between items-start mb-2">
+        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+          > Net_Cost
+        </div>
+        <span class="text-[10px] {{ net_premium_class }} font-bold">{{ premium_label }}</span>
+      </div>
+      <div class="text-2xl {{ net_premium_class }} font-mono font-light">
+        {{ net_premium }}
+      </div>
+      <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between">
+        <span>COST:</span>
+        <span class="text-slate-500">Σ(qty × price)</span>
+      </div>
+    </div>
+
+    <!-- Max Profit -->
+    <div class="glass-panel p-4 border border-slate-700 relative group hover:border-emerald-500/30 transition-all">
+      <div class="flex justify-between items-start mb-2">
+        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+          > Max_Profit
+        </div>
+      </div>
+      <div class="text-2xl text-emerald-400 font-mono font-light">
+        {{ max_profit }}
+      </div>
+      <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between">
+        <span>UPSIDE:</span>
+        <span class="text-emerald-500/70">Best Case</span>
+      </div>
+    </div>
+
+    <!-- Max Loss -->
+    <div class="glass-panel p-4 border border-slate-700 relative group hover:border-red-500/30 transition-all">
+      <div class="flex justify-between items-start mb-2">
+        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+          > Max_Loss
+        </div>
+      </div>
+      <div class="text-2xl text-red-400 font-mono font-light">
+        {{ max_loss }}
+      </div>
+      <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between">
+        <span>DOWNSIDE:</span>
+        <span class="text-red-500/70">Worst Case</span>
+      </div>
+    </div>
+
+    <!-- Breakeven Points -->
+    <div class="glass-panel p-4 border border-slate-700 relative group hover:border-blue-500/30 transition-all">
+      <div class="flex justify-between items-start mb-2">
+        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+          > Breakeven
+        </div>
+      </div>
+      <div class="text-lg text-blue-400 font-mono font-light">
+        {% if breakeven_count == 0 %}
+        None
+        {% else %}
+        {{ breakevens }}
+        {% endif %}
+      </div>
+      <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between">
+        <span>POINTS:</span>
+        <span class="text-slate-500">{{ breakeven_count }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toggle Greeks Button -->
+  <div class="flex justify-center">
+    <button onclick="toggleStratGreeks()"
+            id="strat-greeks-toggle-btn"
+            class="group flex items-center gap-2 px-6 py-2 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-full text-[10px] uppercase tracking-widest text-slate-400 hover:text-white transition-all">
+      <span>Show Net Greeks</span>
+      <svg id="strat-greeks-chevron" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Collapsible Net Greeks -->
+  <div id="strat-greeks-container" class="hidden grid grid-cols-2 md:grid-cols-5 gap-4 animate-fade-in">
+    <div class="glass-panel p-4 border border-emerald-500/30 relative group hover:border-emerald-500/50 transition-all">
+      <div class="text-[10px] text-emerald-500 uppercase tracking-widest font-bold mb-2">
+        > Net Delta (Δ)
+      </div>
+      <div class="text-2xl text-emerald-400 font-mono font-light">{{ net_delta }}</div>
+      <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2">∂V/∂S</div>
+    </div>
+
+    <div class="glass-panel p-4 border border-cyan-500/30 relative group hover:border-cyan-500/50 transition-all">
+      <div class="text-[10px] text-cyan-500 uppercase tracking-widest font-bold mb-2">
+        > Net Gamma (Γ)
+      </div>
+      <div class="text-2xl text-cyan-400 font-mono font-light">{{ net_gamma }}</div>
+      <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2">∂²V/∂S²</div>
+    </div>
+
+    <div class="glass-panel p-4 border border-orange-500/30 relative group hover:border-orange-500/50 transition-all">
+      <div class="text-[10px] text-orange-500 uppercase tracking-widest font-bold mb-2">
+        > Net Theta (Θ)
+      </div>
+      <div class="text-2xl text-orange-400 font-mono font-light">{{ net_theta }}</div>
+      <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2">∂V/∂t per day</div>
+    </div>
+
+    <div class="glass-panel p-4 border border-purple-500/30 relative group hover:border-purple-500/50 transition-all">
+      <div class="text-[10px] text-purple-500 uppercase tracking-widest font-bold mb-2">
+        > Net Vega (ν)
+      </div>
+      <div class="text-2xl text-purple-400 font-mono font-light">{{ net_vega }}</div>
+      <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2">∂V/∂σ per 1%</div>
+    </div>
+
+    <div class="glass-panel p-4 border border-blue-500/30 relative group hover:border-blue-500/50 transition-all">
+      <div class="text-[10px] text-blue-500 uppercase tracking-widest font-bold mb-2">
+        > Net Rho (ρ)
+      </div>
+      <div class="text-2xl text-blue-400 font-mono font-light">{{ net_rho }}</div>
+      <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2">∂V/∂r per 1%</div>
+    </div>
+  </div>
+
+  <!-- Toggle Leg Details Button -->
+  <div class="flex justify-center">
+    <button onclick="toggleLegDetails()"
+            id="leg-details-toggle-btn"
+            class="group flex items-center gap-2 px-6 py-2 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-full text-[10px] uppercase tracking-widest text-slate-400 hover:text-white transition-all">
+      <span>Show Leg Details</span>
+      <svg id="leg-details-chevron" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Collapsible Leg Details -->
+  <div id="leg-details-container" class="hidden animate-fade-in">
+    <div class="glass-panel border border-slate-700 overflow-hidden">
+      <table class="w-full text-xs font-mono">
+        <thead>
+        <tr class="border-b border-slate-700 text-slate-500 uppercase tracking-widest">
+          <th class="p-3 text-left">#</th>
+          <th class="p-3 text-left">Type</th>
+          <th class="p-3 text-right">Strike</th>
+          <th class="p-3 text-right">Qty</th>
+          <th class="p-3 text-right">Price</th>
+          <th class="p-3 text-right">Delta</th>
+          <th class="p-3 text-right">Gamma</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for leg in legs %}
+        <tr class="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
+          <td class="p-3 text-slate-400">{{ leg.index }}</td>
+          <td class="p-3 {% if leg.option_type == "Call" %}text-emerald-400{% else %}text-red-400{% endif %}">
+          {{ leg.option_type }}
+          </td>
+          <td class="p-3 text-right text-white">${{ leg.strike }}</td>
+          <td class="p-3 text-right {% if leg.quantity.starts_with("-") %}text-red-400{% else %}text-emerald-400{% endif %}">
+          {{ leg.quantity }}
+          </td>
+          <td class="p-3 text-right text-amber-400">${{ leg.price }}</td>
+          <td class="p-3 text-right text-slate-300">{{ leg.delta }}</td>
+          <td class="p-3 text-right text-slate-300">{{ leg.gamma }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleStratGreeks() {
+    const container = document.getElementById('strat-greeks-container');
+    const btnText = document.querySelector('#strat-greeks-toggle-btn span');
+    const chevron = document.getElementById('strat-greeks-chevron');
+
+    if (container.classList.contains('hidden')) {
+      container.classList.remove('hidden');
+      btnText.textContent = 'Hide Net Greeks';
+      chevron.classList.add('rotate-180');
+    } else {
+      container.classList.add('hidden');
+      btnText.textContent = 'Show Net Greeks';
+      chevron.classList.remove('rotate-180');
+    }
+  }
+
+  function toggleLegDetails() {
+    const container = document.getElementById('leg-details-container');
+    const btnText = document.querySelector('#leg-details-toggle-btn span');
+    const chevron = document.getElementById('leg-details-chevron');
+
+    if (container.classList.contains('hidden')) {
+      container.classList.remove('hidden');
+      btnText.textContent = 'Hide Leg Details';
+      chevron.classList.add('rotate-180');
+    } else {
+      container.classList.add('hidden');
+      btnText.textContent = 'Show Leg Details';
+      chevron.classList.remove('rotate-180');
+    }
+  }
+</script>
