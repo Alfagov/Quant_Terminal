@@ -1,0 +1,132 @@
+<div class="w-full animate-fade-in space-y-4">
+  <!-- Primary Stats -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <!-- Portfolio Price -->
+    <div class="glass-panel p-4 border border-slate-700 relative group hover:border-teal-500/30 transition-all">
+      <div class="flex justify-between items-start mb-2">
+        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+          > Port_Price
+        </div>
+      </div>
+      <div class="text-2xl text-teal-400 font-mono font-light">
+        ${{ total_price }}
+      </div>
+      <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between">
+        <span>SUM:</span>
+        <span class="text-slate-500">&Sigma;(Bond_i)</span>
+      </div>
+    </div>
+
+    <!-- Modified Duration -->
+    <div class="glass-panel p-4 border border-slate-700 relative group hover:border-emerald-500/30 transition-all">
+      <div class="flex justify-between items-start mb-2">
+        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+          > Mod_Duration
+        </div>
+      </div>
+      <div class="text-2xl text-emerald-400 font-mono font-light">
+        {{ modified_duration }}
+      </div>
+      <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between">
+        <span>D_MOD:</span>
+        <span class="text-slate-500">MV-weighted</span>
+      </div>
+    </div>
+
+    <!-- Macaulay Duration -->
+    <div class="glass-panel p-4 border border-slate-700 relative group hover:border-blue-500/30 transition-all">
+      <div class="flex justify-between items-start mb-2">
+        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+          > Mac_Duration
+        </div>
+      </div>
+      <div class="text-2xl text-blue-400 font-mono font-light">
+        {{ macaulay_duration }}
+      </div>
+      <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between">
+        <span>D_MAC:</span>
+        <span class="text-slate-500">MV-weighted</span>
+      </div>
+    </div>
+
+    <!-- Convexity -->
+    <div class="glass-panel p-4 border border-slate-700 relative group hover:border-purple-500/30 transition-all">
+      <div class="flex justify-between items-start mb-2">
+        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+          > Convexity
+        </div>
+      </div>
+      <div class="text-2xl text-purple-400 font-mono font-light">
+        {{ convexity }}
+      </div>
+      <div class="text-xs text-slate-400 font-mono border-t border-slate-800 pt-2 mt-2 flex justify-between">
+        <span>C:</span>
+        <span class="text-slate-500">MV-weighted</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toggle Bond Details Button -->
+  <div class="flex justify-center">
+    <button onclick="toggleBondDetails()"
+            id="bond-details-toggle-btn"
+            class="group flex items-center gap-2 px-6 py-2 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-full text-[10px] uppercase tracking-widest text-slate-400 hover:text-white transition-all">
+      <span>Show Bond Details</span>
+      <svg id="bond-details-chevron" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Collapsible Bond Details -->
+  <div id="bond-details-container" class="hidden animate-fade-in">
+    <div class="glass-panel border border-slate-700 overflow-hidden">
+      <table class="w-full text-xs font-mono">
+        <thead>
+        <tr class="border-b border-slate-700 text-slate-500 uppercase tracking-widest">
+          <th class="p-3 text-left">#</th>
+          <th class="p-3 text-right">Face</th>
+          <th class="p-3 text-right">YTM</th>
+          <th class="p-3 text-right">Maturity</th>
+          <th class="p-3 text-right">Coupon</th>
+          <th class="p-3 text-right">Price</th>
+          <th class="p-3 text-right">Mod Dur</th>
+          <th class="p-3 text-right">Convexity</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for bond in bonds %}
+        <tr class="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
+          <td class="p-3 text-slate-400">{{ bond.index }}</td>
+          <td class="p-3 text-right text-white">${{ bond.face_value }}</td>
+          <td class="p-3 text-right text-teal-400">{{ bond.ytm }}%</td>
+          <td class="p-3 text-right text-slate-300">{{ bond.maturity }}Y</td>
+          <td class="p-3 text-right text-amber-400">{{ bond.coupon }}%</td>
+          <td class="p-3 text-right text-emerald-400">${{ bond.price }}</td>
+          <td class="p-3 text-right text-blue-400">{{ bond.mod_duration }}</td>
+          <td class="p-3 text-right text-purple-400">{{ bond.convexity }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleBondDetails() {
+    const container = document.getElementById('bond-details-container');
+    const btnText = document.querySelector('#bond-details-toggle-btn span');
+    const chevron = document.getElementById('bond-details-chevron');
+
+    if (container.classList.contains('hidden')) {
+      container.classList.remove('hidden');
+      btnText.textContent = 'Hide Bond Details';
+      chevron.classList.add('rotate-180');
+    } else {
+      container.classList.add('hidden');
+      btnText.textContent = 'Show Bond Details';
+      chevron.classList.remove('rotate-180');
+    }
+  }
+</script>

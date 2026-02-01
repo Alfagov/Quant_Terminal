@@ -17,7 +17,7 @@
       <button onclick="toggleGreekCharts()"
               id="greek-charts-toggle-btn"
               class="group flex items-center gap-2 px-6 py-2 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-full text-[10px] uppercase tracking-widest text-slate-400 hover:text-white transition-all">
-        <span>Show Greeks Graphs</span>
+        <span>Show {{ greeks_charts_label }}</span>
         <svg id="greek-charts-chevron" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
         </svg>
@@ -40,11 +40,11 @@
 
       if (container.classList.contains('hidden')) {
         container.classList.remove('hidden');
-        btnText.textContent = 'Hide Greeks Graphs';
+        btnText.textContent = 'Hide {{ greeks_charts_label }}';
         chevron.classList.add('rotate-180');
       } else {
         container.classList.add('hidden');
-        btnText.textContent = 'Show Greeks Graphs';
+        btnText.textContent = 'Show {{ greeks_charts_label }}';
         chevron.classList.remove('rotate-180');
       }
     }

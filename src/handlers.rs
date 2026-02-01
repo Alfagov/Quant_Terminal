@@ -8,7 +8,7 @@ use statrs::distribution::Normal;
 use tokio::task::JoinError;
 use validator::Validate;
 use crate::charts::{create_dataset, create_dataset_with_dash, render_chart, Dataset};
-use crate::{binomial_poisson, black_scholes, brownian_motion, market_maker, option_strategies};
+use crate::{binomial_poisson, black_scholes, bonds, brownian_motion, market_maker, option_strategies};
 use crate::brownian_motion::SimulationResult;
 
 pub enum AppError {
@@ -143,6 +143,7 @@ pub struct SimulationResultsTemplate {
     pub stats_html: String,
     pub charts: Vec<String>,
     pub greeks_charts: Vec<String>,
+    pub greeks_charts_label: String,
 }
 
 pub struct LegDisplay {
@@ -173,6 +174,27 @@ pub struct OptionStrategiesStatsTemplate {
     pub legs: Vec<LegDisplay>,
 }
 
+pub struct BondDisplay {
+    pub index: usize,
+    pub face_value: String,
+    pub ytm: String,
+    pub maturity: String,
+    pub coupon: String,
+    pub price: String,
+    pub mod_duration: String,
+    pub convexity: String,
+}
+
+#[derive(Template)]
+#[template(path = "bonds_stats.html")]
+pub struct BondStatsTemplate {
+    pub total_price: String,
+    pub modified_duration: String,
+    pub macaulay_duration: String,
+    pub convexity: String,
+    pub bonds: Vec<BondDisplay>,
+}
+
 // Static file handlers
 pub async fn serve_index() -> Result<Html<String>, AppError> {
     serve_static_file("index.html").await
@@ -200,6 +222,10 @@ pub async fn serve_black_scholes() -> Result<Html<String>, AppError> {
 
 pub async fn serve_option_strategies() -> Result<Html<String>, AppError> {
     serve_static_file("option-strategies.html").await
+}
+
+pub async fn serve_bonds() -> Result<Html<String>, AppError> {
+    serve_static_file("bonds.html").await
 }
 
 async fn serve_static_file(filename: &str) -> Result<Html<String>, AppError> {
@@ -558,6 +584,7 @@ pub async fn simulate_black_scholes(
         stats_html,
         charts: charts_vec,
         greeks_charts: greeks_charts_vec,
+        greeks_charts_label: "Greeks Graphs".to_string(),
     };
 
     let html = bs_result_template.render()?;
@@ -797,6 +824,7 @@ pub async fn simulate_glosten(
         stats_html,
         charts,
         greeks_charts: vec![],
+        greeks_charts_label: String::new(),
     };
 
     let html = result_template.render()?;
@@ -914,6 +942,7 @@ pub async fn simulate_binomial_poisson(
         stats_html,
         charts,
         greeks_charts: vec![],
+        greeks_charts_label: String::new(),
     };
 
     let html = result_template.render()?;
@@ -1173,6 +1202,7 @@ pub async fn analyze_option_strategy(
         stats_html,
         charts,
         greeks_charts,
+        greeks_charts_label: "Greeks Graphs".to_string(),
     };
 
     let html = result_template.render()?;
@@ -1494,8 +1524,231 @@ pub async fn simulate_brownian_motion(
         stats_html,
         charts,
         greeks_charts: vec![],
+        greeks_charts_label: String::new(),
     };
 
     let html = result_template.render()?;
+    Ok(Html(html))
+}
+
+// Bond Portfolio handler
+#[derive(Debug, Deserialize)]
+pub struct BondForm {
+    bonds_json: String,
+    num_points: usize,
+}
+
+#[derive(Debug, Deserialize)]
+struct BondInput {
+    face_value: f64,
+    ytm: f64,
+    maturity: f64,
+    coupon_yield: f64,
+    coupon_interval: f64,
+}
+
+pub async fn analyze_bonds(
+    Form(form): Form<BondForm>,
+) -> Result<Html<String>, AppError> {
+    let bond_inputs: Vec<BondInput> = serde_json::from_str(&form.bonds_json)
+        .map_err(|e| AppError::ValidationError(format!("Invalid bonds data: {}", e)))?;
+
+    if bond_inputs.is_empty() {
+        return Err(AppError::ValidationError("At least one bond is required".to_string()));
+    }
+
+    let num_points = form.num_points.clamp(20, 300);
+
+    let bond_list: Vec<bonds::Bond> = bond_inputs
+        .iter()
+        .map(|bi| bonds::Bond {
+            face_value: bi.face_value,
+            ytm: bi.ytm / 100.0,
+            coupon_yield: bi.coupon_yield / 100.0,
+            maturity: bi.maturity,
+            coupon_interval: bi.coupon_interval,
+        })
+        .collect();
+
+    let result = tokio::task::spawn_blocking(move || {
+        bonds::analyze_portfolio(&bond_list, num_points)
+    }).await?;
+
+    // Build per-bond display
+    let bonds_display: Vec<BondDisplay> = result.bond_analyses.iter()
+        .enumerate()
+        .map(|(i, a)| BondDisplay {
+            index: i + 1,
+            face_value: format!("{:.0}", bond_inputs[i].face_value),
+            ytm: format!("{:.2}", bond_inputs[i].ytm),
+            maturity: format!("{:.1}", bond_inputs[i].maturity),
+            coupon: format!("{:.2}", bond_inputs[i].coupon_yield),
+            price: format!("{:.2}", a.price),
+            mod_duration: format!("{:.4}", a.modified_duration),
+            convexity: format!("{:.4}", a.convexity),
+        })
+        .collect();
+
+    let stats_template = BondStatsTemplate {
+        total_price: format!("{:.2}", result.total_price),
+        modified_duration: format!("{:.4}", result.weighted_mod_duration),
+        macaulay_duration: format!("{:.4}", result.weighted_mac_duration),
+        convexity: format!("{:.4}", result.weighted_convexity),
+        bonds: bonds_display,
+    };
+
+    let stats_html = stats_template.render()?;
+
+    let shift_labels: Vec<i32> = result.yield_shifts_bps.iter()
+        .map(|b| *b as i32)
+        .collect();
+
+    // Chart 1: Price Change vs Yield Shift
+    let chart1 = render_chart(
+        "priceChangeChart",
+        "Price Change vs Yield Shift",
+        &shift_labels,
+        vec![
+            create_dataset(
+                "Real Price Change",
+                &result.real_price_change,
+                "#10b981",
+                "rgba(16, 185, 129, 0.1)",
+                3,
+                true,
+            ),
+            create_dataset_with_dash(
+                "Duration Approximation",
+                &result.duration_approx,
+                "#3b82f6",
+                "rgba(59, 130, 246, 0.0)",
+                2,
+                false,
+                vec![5, 5],
+            ),
+            create_dataset_with_dash(
+                "Convexity Approximation",
+                &result.convexity_approx,
+                "#8b5cf6",
+                "rgba(139, 92, 246, 0.0)",
+                2,
+                false,
+                vec![8, 4],
+            ),
+        ],
+        "Yield Shift (bps)",
+        "Price Change ($)",
+        true,
+    )?;
+
+    // Chart 2: Bond Price vs YTM (per-bond + portfolio total)
+    let colors = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
+    let mut price_datasets: Vec<Dataset> = result.bond_analyses.iter()
+        .enumerate()
+        .map(|(i, a)| {
+            let color = colors[i % colors.len()];
+            create_dataset(
+                &format!("Bond {}", i + 1),
+                &a.absolute_prices,
+                color,
+                "rgba(0, 0, 0, 0.0)",
+                2,
+                false,
+            )
+        })
+        .collect();
+
+    let portfolio_abs_prices: Vec<f64> = (0..num_points)
+        .map(|i| {
+            result.bond_analyses.iter()
+                .map(|a| a.absolute_prices[i])
+                .sum()
+        })
+        .collect();
+
+    price_datasets.push(create_dataset(
+        "Portfolio Total",
+        &portfolio_abs_prices,
+        "#ffffff",
+        "rgba(255, 255, 255, 0.05)",
+        3,
+        false,
+    ));
+
+    let chart2 = render_chart(
+        "bondPriceChart",
+        "Bond Price vs YTM",
+        &shift_labels,
+        price_datasets,
+        "Yield Shift (bps)",
+        "Price ($)",
+        true,
+    )?;
+
+    // Chart 3: Real vs Convexity Approximation overlay
+    let chart3 = render_chart(
+        "realVsConvexityChart",
+        "Real Price vs Convexity Approximation",
+        &shift_labels,
+        vec![
+            create_dataset(
+                "Real Price Change",
+                &result.real_price_change,
+                "#10b981",
+                "rgba(16, 185, 129, 0.1)",
+                3,
+                true,
+            ),
+            create_dataset_with_dash(
+                "Convexity Approximation",
+                &result.convexity_approx,
+                "#8b5cf6",
+                "rgba(139, 92, 246, 0.0)",
+                2,
+                false,
+                vec![8, 4],
+            ),
+        ],
+        "Yield Shift (bps)",
+        "Price Change ($)",
+        true,
+    )?;
+
+    // Chart 4: Duration & Convexity Error
+    let chart4 = render_chart(
+        "errorChart",
+        "Duration & Convexity Approximation Error",
+        &shift_labels,
+        vec![
+            create_dataset(
+                "Duration Error",
+                &result.duration_error,
+                "#3b82f6",
+                "rgba(59, 130, 246, 0.1)",
+                2,
+                true,
+            ),
+            create_dataset(
+                "Convexity Error",
+                &result.convexity_error,
+                "#8b5cf6",
+                "rgba(139, 92, 246, 0.1)",
+                2,
+                true,
+            ),
+        ],
+        "Yield Shift (bps)",
+        "Approximation Error ($)",
+        true,
+    )?;
+
+    let bond_result = SimulationResultsTemplate {
+        stats_html,
+        charts: vec![chart1, chart2, chart3],
+        greeks_charts: vec![chart4],
+        greeks_charts_label: "Error Analysis".to_string(),
+    };
+
+    let html = bond_result.render()?;
     Ok(Html(html))
 }

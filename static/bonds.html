@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bond Portfolio - QuantSim</title>
+
+    <script src="/static/js/htmx.js"></script>
+    <link href="/static/css/output.css" rel="stylesheet">
+    <script src="/static/js/chart.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+            href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap"
+            rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="/static/css/styles.css" />
+</head>
+
+<body
+        class="bg-slate-950 text-slate-200 min-h-screen relative overflow-x-hidden selection:bg-blue-500/30 selection:text-blue-200"
+>
+<!-- Background Effects -->
+<div class="fixed inset-0 pointer-events-none z-0">
+    <div
+            class="absolute top-0 right-0 w-full h-[500px] bg-teal-900/10 blur-[100px] rounded-full opacity-40"
+    ></div>
+    <div class="absolute inset-0 bg-grid-pattern opacity-[0.15]"></div>
+</div>
+
+<!-- Navigation -->
+<nav
+        class="fixed w-full z-50 top-0 transition-all duration-300 glass-panel border-b-0 border-b border-white/5"
+>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-20">
+            <div class="flex items-center gap-3">
+                <a href="/" class="group flex items-center gap-3">
+                    <div
+                            class="w-10 h-10 bg-blue-600/20 border border-blue-500/50 flex items-center justify-center shadow-lg shadow-blue-500/10 transition-all group-hover:bg-blue-600/30"
+                    >
+                        <span class="text-blue-400 font-bold text-xl">Q</span>
+                    </div>
+                    <span class="text-white text-lg font-bold tracking-tight"
+                    >QUANT<span class="text-blue-400">SIM</span>_TERMINAL</span>
+                </a>
+                <span class="text-slate-600 mx-2 text-xl font-light">/</span>
+                <span class="text-slate-400 text-sm font-bold uppercase tracking-wider">BOND_PORT</span>
+            </div>
+            <div class="flex items-center space-x-6">
+                <div class="flex items-center gap-2 text-xs text-slate-500 font-mono">
+                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    KERNEL_ACTIVE
+                </div>
+                <a
+                        href="/"
+                        class="text-xs uppercase tracking-widest font-bold text-slate-400 hover:text-white transition-colors border border-slate-700 hover:border-slate-500 px-4 py-2"
+                >
+                    [ ESC ] BACK
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="z-10 pt-28 pb-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Sidebar Controls -->
+        <div class="lg:col-span-1">
+            <div class="glass-panel p-6 sticky top-24 animate-fade-in">
+                <div class="flex items-center justify-between mb-6 border-b border-slate-700 pb-4">
+                    <h2 class="text-sm font-bold text-white uppercase tracking-wider">
+                        > PARAMETERS
+                    </h2>
+                    <span class="text-xs text-slate-500">[CONFIG]</span>
+                </div>
+
+                <!-- HTMX Form -->
+                <form
+                        id="bonds-form"
+                        hx-post="/analyze-bonds"
+                        hx-target="#stats-section"
+                        hx-swap="innerHTML"
+                        hx-indicator="#loading"
+                        class="space-y-5"
+                >
+                    <!-- Surface Points -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2 flex justify-between">
+                            <span>Curve_Points</span>
+                            <span id="pointsValue" class="text-blue-400">100</span>
+                        </label>
+                        <input
+                                type="range"
+                                name="num_points"
+                                id="num_points"
+                                min="20"
+                                max="300"
+                                step="10"
+                                value="100"
+                                oninput="document.getElementById('pointsValue').textContent = this.value"
+                                class="w-full"
+                        />
+                    </div>
+
+                    <!-- Bond Presets -->
+                    <div class="border-t border-slate-700 pt-4">
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-3">
+                            Bond_Presets
+                        </label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button" onclick="applyPreset('treasury_10y')"
+                                    class="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-teal-500/30 text-teal-400 hover:bg-teal-500/10 transition-all">
+                                Treasury 10Y
+                            </button>
+                            <button type="button" onclick="applyPreset('corporate_5y')"
+                                    class="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition-all">
+                                Corporate 5Y
+                            </button>
+                            <button type="button" onclick="applyPreset('zero_coupon')"
+                                    class="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 transition-all">
+                                Zero Coupon
+                            </button>
+                            <button type="button" onclick="applyPreset('mixed_portfolio')"
+                                    class="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-purple-500/30 text-purple-400 hover:bg-purple-500/10 transition-all">
+                                Mixed Port.
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bond Legs -->
+                    <div class="border-t border-slate-700 pt-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <label class="block text-xs font-bold text-slate-400 uppercase">
+                                Bond_Holdings
+                            </label>
+                            <button type="button" onclick="addBond(1000, 5.0, 10, 4.0, 0.5)"
+                                    class="text-[10px] font-bold uppercase tracking-wider text-blue-400 hover:text-blue-300 border border-blue-500/30 px-2 py-1 hover:bg-blue-500/10 transition-all">
+                                + Add
+                            </button>
+                        </div>
+
+                        <div id="bonds-container" class="space-y-2">
+                            <!-- Dynamic bonds rendered here -->
+                        </div>
+
+                        <div id="no-bonds-msg" class="text-center py-4 text-slate-600 text-[10px] font-mono hidden">
+                            No bonds added. Use presets or click + Add.
+                        </div>
+                    </div>
+
+                    <!-- Hidden field for bonds JSON -->
+                    <input type="hidden" name="bonds_json" id="bonds_json" value="[]" />
+
+                    <!-- Buttons -->
+                    <div class="pt-2 space-y-3">
+                        <button
+                                type="submit"
+                                class="w-full bg-teal-600 hover:bg-teal-500 text-white py-3 text-xs font-bold uppercase tracking-widest transition-all hover:shadow-[0_0_15px_rgba(20,184,166,0.5)] border border-teal-500"
+                        >
+                            >> Analyze_Portfolio
+                        </button>
+                        <button
+                                type="button"
+                                onclick="resetAll()"
+                                class="w-full bg-transparent hover:bg-slate-800 text-slate-400 py-3 text-xs font-bold uppercase tracking-widest transition-colors border border-slate-700"
+                        >
+                            Reset_All
+                        </button>
+                    </div>
+
+                    <div
+                            id="loading"
+                            class="htmx-indicator flex justify-center items-center gap-2 text-teal-400 text-xs font-mono"
+                    >
+                        <span class="animate-spin">/</span>
+                        <span>ANALYZING_PORTFOLIO...</span>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="lg:col-span-3">
+            <!-- Info Box -->
+            <div class="mb-6 glass-panel p-4 border-l-2 border-teal-500 flex items-start gap-4">
+                <div class="mt-1 text-teal-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        ></path>
+                    </svg>
+                </div>
+                <div class="text-xs text-slate-400 leading-relaxed">
+                    <strong class="text-white block mb-1 uppercase tracking-wide">Bond Portfolio Analytics:</strong>
+                    Analyze bond portfolios with duration and convexity risk measures.
+                    Compare <span class="text-emerald-300 font-mono">real repricing</span> against
+                    <span class="text-blue-300 font-mono">duration approximation</span> (linear) and
+                    <span class="text-purple-300 font-mono">convexity adjustment</span> (second-order)
+                    across a -300bps to +300bps yield shift range. Portfolio metrics are market-value weighted.
+                </div>
+            </div>
+
+            <div
+                    id="stats-section"
+                    class="space-y-6 min-h-[400px] glass-panel p-1 border border-slate-800 items-center justify-center"
+            >
+                <!-- Initial placeholder -->
+                <div class="text-center p-12">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-slate-900 rounded-full border border-slate-700 mb-4 text-slate-500">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="1.5"
+                                    d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
+                            ></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-white uppercase tracking-widest mb-2">
+                        Awaiting Portfolio
+                    </h3>
+                    <p class="text-slate-500 text-xs font-mono">
+                        > Select a preset or add bonds manually<br />
+                        > Click ANALYZE_PORTFOLIO to compute
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ── Bond Management ────────────────────────────────────────────────────
+    var bonds = [];
+    var bondIdCounter = 0;
+
+    function addBond(face, ytm, maturity, coupon, interval) {
+        bonds.push({
+            id: bondIdCounter++,
+            face_value: face,
+            ytm: ytm,
+            maturity: maturity,
+            coupon_yield: coupon,
+            coupon_interval: interval,
+        });
+        renderBonds();
+    }
+
+    function removeBond(id) {
+        bonds = bonds.filter(function(b) { return b.id !== id; });
+        renderBonds();
+    }
+
+    function renderBonds() {
+        var container = document.getElementById('bonds-container');
+        var noBondsMsg = document.getElementById('no-bonds-msg');
+
+        if (bonds.length === 0) {
+            container.innerHTML = '';
+            noBondsMsg.classList.remove('hidden');
+            syncHiddenField();
+            return;
+        }
+
+        noBondsMsg.classList.add('hidden');
+        var html = '';
+
+        for (var i = 0; i < bonds.length; i++) {
+            var bond = bonds[i];
+            html += '<div class="p-2 bg-slate-900/80 border border-slate-800 rounded space-y-1.5" data-bond-id="' + bond.id + '">'
+                + '<div class="flex items-center justify-between">'
+                + '<span class="text-[10px] text-slate-500 font-mono font-bold">BOND_' + (i + 1) + '</span>'
+                + '<button type="button" onclick="removeBond(' + bond.id + ')" '
+                + 'class="text-slate-600 hover:text-red-400 transition-colors text-xs">X</button>'
+                + '</div>'
+                + '<div class="grid grid-cols-2 gap-1.5">'
+                // Face Value
+                + '<div>'
+                + '<span class="text-[9px] text-slate-600 uppercase">Face</span>'
+                + '<input type="number" id="face_' + bond.id + '" value="' + bond.face_value + '" '
+                + 'onchange="updateBond(' + bond.id + ')" step="100" '
+                + 'class="w-full bg-slate-800 border border-slate-700 text-slate-300 text-[10px] p-1 focus:outline-none focus:border-teal-500 font-mono" />'
+                + '</div>'
+                // YTM
+                + '<div>'
+                + '<span class="text-[9px] text-slate-600 uppercase">YTM%</span>'
+                + '<input type="number" id="ytm_' + bond.id + '" value="' + bond.ytm + '" '
+                + 'onchange="updateBond(' + bond.id + ')" step="0.25" '
+                + 'class="w-full bg-slate-800 border border-slate-700 text-slate-300 text-[10px] p-1 focus:outline-none focus:border-teal-500 font-mono" />'
+                + '</div>'
+                // Maturity
+                + '<div>'
+                + '<span class="text-[9px] text-slate-600 uppercase">Maturity</span>'
+                + '<input type="number" id="mat_' + bond.id + '" value="' + bond.maturity + '" '
+                + 'onchange="updateBond(' + bond.id + ')" step="1" '
+                + 'class="w-full bg-slate-800 border border-slate-700 text-slate-300 text-[10px] p-1 focus:outline-none focus:border-teal-500 font-mono" />'
+                + '</div>'
+                // Coupon
+                + '<div>'
+                + '<span class="text-[9px] text-slate-600 uppercase">Coupon%</span>'
+                + '<input type="number" id="cpn_' + bond.id + '" value="' + bond.coupon_yield + '" '
+                + 'onchange="updateBond(' + bond.id + ')" step="0.25" '
+                + 'class="w-full bg-slate-800 border border-slate-700 text-slate-300 text-[10px] p-1 focus:outline-none focus:border-teal-500 font-mono" />'
+                + '</div>'
+                + '</div>'
+                // Interval
+                + '<div>'
+                + '<span class="text-[9px] text-slate-600 uppercase">Interval (yrs)</span>'
+                + '<select id="int_' + bond.id + '" onchange="updateBond(' + bond.id + ')" '
+                + 'class="w-full bg-slate-800 border border-slate-700 text-slate-300 text-[10px] p-1 focus:outline-none focus:border-teal-500 uppercase">'
+                + '<option value="1"' + (bond.coupon_interval === 1 ? ' selected' : '') + '>Annual (1.0)</option>'
+                + '<option value="0.5"' + (bond.coupon_interval === 0.5 ? ' selected' : '') + '>Semi-Annual (0.5)</option>'
+                + '<option value="0.25"' + (bond.coupon_interval === 0.25 ? ' selected' : '') + '>Quarterly (0.25)</option>'
+                + '</select>'
+                + '</div>'
+                + '</div>';
+        }
+
+        container.innerHTML = html;
+        syncHiddenField();
+    }
+
+    function updateBond(id) {
+        for (var i = 0; i < bonds.length; i++) {
+            if (bonds[i].id === id) {
+                var faceEl = document.getElementById('face_' + id);
+                var ytmEl = document.getElementById('ytm_' + id);
+                var matEl = document.getElementById('mat_' + id);
+                var cpnEl = document.getElementById('cpn_' + id);
+                var intEl = document.getElementById('int_' + id);
+                if (faceEl) bonds[i].face_value = parseFloat(faceEl.value) || 1000;
+                if (ytmEl) bonds[i].ytm = parseFloat(ytmEl.value) || 5;
+                if (matEl) bonds[i].maturity = parseFloat(matEl.value) || 10;
+                if (cpnEl) bonds[i].coupon_yield = parseFloat(cpnEl.value) || 0;
+                if (intEl) bonds[i].coupon_interval = parseFloat(intEl.value) || 0.5;
+                break;
+            }
+        }
+        syncHiddenField();
+    }
+
+    function syncHiddenField() {
+        var data = [];
+        for (var i = 0; i < bonds.length; i++) {
+            var bond = bonds[i];
+            var faceEl = document.getElementById('face_' + bond.id);
+            var ytmEl = document.getElementById('ytm_' + bond.id);
+            var matEl = document.getElementById('mat_' + bond.id);
+            var cpnEl = document.getElementById('cpn_' + bond.id);
+            var intEl = document.getElementById('int_' + bond.id);
+
+            data.push({
+                face_value: faceEl ? parseFloat(faceEl.value) || bond.face_value : bond.face_value,
+                ytm: ytmEl ? parseFloat(ytmEl.value) || bond.ytm : bond.ytm,
+                maturity: matEl ? parseFloat(matEl.value) || bond.maturity : bond.maturity,
+                coupon_yield: cpnEl ? parseFloat(cpnEl.value) || bond.coupon_yield : bond.coupon_yield,
+                coupon_interval: intEl ? parseFloat(intEl.value) || bond.coupon_interval : bond.coupon_interval,
+            });
+        }
+        document.getElementById('bonds_json').value = JSON.stringify(data);
+    }
+
+    // ── Presets ────────────────────────────────────────────────────────────
+    function applyPreset(name) {
+        bonds = [];
+        bondIdCounter = 0;
+
+        switch (name) {
+            case 'treasury_10y':
+                addBond(1000, 4.25, 10, 4.0, 0.5);
+                break;
+            case 'corporate_5y':
+                addBond(1000, 5.50, 5, 5.0, 0.5);
+                break;
+            case 'zero_coupon':
+                addBond(1000, 4.50, 10, 0, 1);
+                break;
+            case 'mixed_portfolio':
+                addBond(1000, 4.25, 10, 4.0, 0.5);
+                addBond(1000, 5.50, 5, 5.0, 0.5);
+                break;
+        }
+    }
+
+    // ── Reset ──────────────────────────────────────────────────────────────
+    function resetAll() {
+        document.getElementById('pointsValue').textContent = '100';
+        document.getElementById('num_points').value = '100';
+        bonds = [];
+        bondIdCounter = 0;
+        renderBonds();
+    }
+
+    // ── Sync before HTMX submit ───────────────────────────────────────────
+    document.addEventListener('htmx:configRequest', function(evt) {
+        if (evt.detail.path === '/analyze-bonds') {
+            syncHiddenField();
+        }
+    });
+
+    // ── Auto-load with a default mixed portfolio ─────────────────────────
+    document.addEventListener('DOMContentLoaded', function() {
+        applyPreset('mixed_portfolio');
+        setTimeout(function() {
+            var form = document.getElementById('bonds-form');
+            if (form) htmx.trigger(form, 'submit');
+        }, 500);
+    });
+</script>
+</body>
+</html>

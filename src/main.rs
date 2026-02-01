@@ -23,6 +23,7 @@ mod charts;
 mod black_scholes;
 mod utils;
 mod option_strategies;
+mod bonds;
 
 pub struct SecurityLimits;
 
@@ -78,6 +79,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/simulate-black-scholes", post(handlers::simulate_black_scholes))
         .route("/option-strategies", get(handlers::serve_option_strategies))
         .route("/analyze-strategy", post(handlers::analyze_option_strategy))
+        .route("/bonds", get(handlers::serve_bonds))
+        .route("/analyze-bonds", post(handlers::analyze_bonds))
 
         .nest_service("/static", ServeDir::new("static"))
 
