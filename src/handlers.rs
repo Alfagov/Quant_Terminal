@@ -147,6 +147,17 @@ pub struct SimulationResultsTemplate {
     pub charts: Vec<String>,
     pub greeks_charts: Vec<String>,
     pub greeks_charts_label: String,
+    pub surface_data: Vec<Surface>,
+}
+
+#[derive(Serialize)]
+pub struct Surface {
+    pub id: String,
+    pub plot_json: String,
+    pub surface_title: String,
+    pub x_axis_label: String,
+    pub y_axis_label: String,
+    pub z_axis_label: String,
 }
 
 pub struct LegDisplay {
@@ -175,6 +186,7 @@ pub struct OptionStrategiesStatsTemplate {
     pub net_vega: String,
     pub net_rho: String,
     pub legs: Vec<LegDisplay>,
+    pub surface_data: String,
 }
 
 pub struct BondDisplay {
@@ -585,11 +597,48 @@ pub async fn simulate_black_scholes(
         )?,
     ];
 
+    let surface_data_strike = serde_json::to_string(&serde_json::json!({
+        "x": surfaces.price_surface_vol_moneyness.x,
+        "y": surfaces.price_surface_vol_moneyness.y,
+        "z": surfaces.price_surface_vol_moneyness.z,
+        "title": "Option Price Surface ($)",
+        "type": "price"
+    }))
+        .unwrap_or_default();
+
+    let s_strike = Surface {
+        id: "strike_surface".to_string(),
+        plot_json: surface_data_strike,
+        surface_title: "Option Moneyness Surface Price ($)".to_string(),
+        x_axis_label: surfaces.price_surface_vol_moneyness.x_label.clone(),
+        y_axis_label: surfaces.price_surface_vol_moneyness.y_label.clone(),
+        z_axis_label: surfaces.price_surface_vol_moneyness.z_label.clone(),
+    };
+
+    let surface_data_moneyness = serde_json::to_string(&serde_json::json!({
+        "x": surfaces.price_surface_vol_time.x,
+        "y": surfaces.price_surface_vol_time.y,
+        "z": surfaces.price_surface_vol_time.z,
+        "title": "Option Moneyness Surface ($)",
+        "type": "price"
+    }))
+        .unwrap_or_default();
+
+    let s_moneyness = Surface {
+        id: "moneyness_surface".to_string(),
+        plot_json: surface_data_moneyness,
+        surface_title: "Option Volatility Surface Price ($)".to_string(),
+        x_axis_label: surfaces.price_surface_vol_time.x_label.clone(),
+        y_axis_label: surfaces.price_surface_vol_time.y_label.clone(),
+        z_axis_label: surfaces.price_surface_vol_time.z_label.clone(),
+    };
+
     let bs_result_template = SimulationResultsTemplate {
         stats_html,
         charts: charts_vec,
         greeks_charts: greeks_charts_vec,
         greeks_charts_label: "Greeks Graphs".to_string(),
+        surface_data: vec![s_strike, s_moneyness],
     };
 
     let html = bs_result_template.render()?;
@@ -836,6 +885,7 @@ pub async fn simulate_glosten(Form(form): Form<GlostenForm>) -> Result<Html<Stri
         charts,
         greeks_charts: vec![],
         greeks_charts_label: String::new(),
+        surface_data: vec![],
     };
 
     let html = result_template.render()?;
@@ -956,6 +1006,7 @@ pub async fn simulate_binomial_poisson(
         charts,
         greeks_charts: vec![],
         greeks_charts_label: String::new(),
+        surface_data: vec![],
     };
 
     let html = result_template.render()?;
@@ -1068,6 +1119,13 @@ pub async fn analyze_option_strategy(
         net_vega: format!("{:.4}", result.net_greeks.vega / 100.0),
         net_rho: format!("{:.4}", result.net_greeks.rho / 100.0),
         legs: legs_display,
+        surface_data: serde_json::to_string(&serde_json::json!({
+            "x": result.surface_spot,
+            "y": result.surface_time,
+            "z": result.surface_pnl,
+            "type": "pnl"
+        }))
+        .unwrap_or_default(),
     };
 
     let stats_html = stats_template.render()?;
@@ -1216,6 +1274,7 @@ pub async fn analyze_option_strategy(
         charts,
         greeks_charts,
         greeks_charts_label: "Greeks Graphs".to_string(),
+        surface_data: vec![],
     };
 
     let html = result_template.render()?;
@@ -1534,6 +1593,7 @@ pub async fn simulate_brownian_motion(
         charts,
         greeks_charts: vec![],
         greeks_charts_label: String::new(),
+        surface_data: vec![],
     };
 
     let html = result_template.render()?;
@@ -1762,6 +1822,7 @@ pub async fn analyze_bonds(Form(form): Form<BondForm>) -> Result<Html<String>, A
         charts: vec![chart1, chart2, chart3],
         greeks_charts: vec![chart4],
         greeks_charts_label: "Error Analysis".to_string(),
+        surface_data: vec![],
     };
 
     let html = bond_result.render()?;
@@ -1931,6 +1992,7 @@ pub async fn simulate_avellaneda(
         charts,
         greeks_charts: vec![],
         greeks_charts_label: String::new(),
+        surface_data: vec![],
     };
 
     let html = result_template.render()?;

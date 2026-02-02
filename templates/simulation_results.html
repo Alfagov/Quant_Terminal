@@ -2,6 +2,103 @@
   <!-- Stats Cards -->
   {{ stats_html|safe }}
 
+  {% if !surface_data.is_empty() %}
+
+  <!-- Toggle Button -->
+  <div class="flex justify-center">
+    <button onclick="toggleSurfaceCharts()" id="surface-charts-toggle-btn"
+            class="group flex items-center gap-2 px-6 py-2 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-full text-[10px] uppercase tracking-widest text-slate-400 hover:text-white transition-all">
+      <span>Show Surfaces</span>
+      <svg id="surface-charts-chevron" class="w-4 h-4 transition-transform duration-300" fill="none"
+           stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+      </svg>
+    </button>
+  </div>
+
+  <div id="surface-charts-container" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
+  {% for surface in surface_data %}
+  <div class="glass-panel p-4 border border-slate-700">
+    <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
+      <h3 class="text-sm font-bold text-white uppercase tracking-wider">
+        > {{ surface.surface_title }}
+      </h3>
+      <span class="text-[10px] text-slate-500 font-mono">INTERACTIVE_3D</span>
+    </div>
+    <div id="{{surface.id}}" class="w-full h-[500px]"></div>
+  </div>
+  <script>
+    (function () {
+      try {
+        const surfaceData = JSON.parse('{{ surface.plot_json|safe }}');
+        if (!surfaceData || !surfaceData.z || surfaceData.z.length === 0) return;
+
+        const data = [{
+          x: surfaceData.x,
+          y: surfaceData.y,
+          z: surfaceData.z,
+          type: 'surface',
+          contours: {
+            z: {
+              show: true,
+              usecolormap: true,
+              highlightcolor: "#42f462",
+              project: { z: true }
+            }
+          },
+          colorscale: 'Viridis', // Or 'Electric', 'Earth'
+          showscale: false
+        }];
+
+        const layout = {
+          scene: {
+            xaxis: { title: '{{ surface.x_axis_label }}', titlefont: { color: '#94a3b8' }, tickfont: { color: '#64748b' } },
+            yaxis: { title: '{{ surface.y_axis_label }}', titlefont: { color: '#94a3b8' }, tickfont: { color: '#64748b' } },
+            zaxis: { title: '{{ surface.z_axis_label }}', titlefont: { color: '#94a3b8' }, tickfont: { color: '#64748b' } },
+            camera: {
+              eye: { x: 1.5, y: 1.5, z: 1.5 }
+            },
+            bgcolor: 'rgba(0,0,0,0)'
+          },
+          paper_bgcolor: 'rgba(0,0,0,0)',
+          plot_bgcolor: 'rgba(0,0,0,0)',
+          margin: { l: 0, r: 0, b: 0, t: 0 },
+          showlegend: false
+        };
+
+        const config = { responsive: true, displayModeBar: false };
+
+        Plotly.newPlot('{{surface.id}}', data, layout, config);
+      } catch (e) {
+        console.error("Failed to render BS surface:", e);
+      }
+    })();
+
+    function toggleSurfaceCharts() {
+      const container = document.getElementById('surface-charts-container');
+      const btnText = document.querySelector('#surface-charts-toggle-btn span');
+      const chevron = document.getElementById('surface-charts-chevron');
+
+      if (container.classList.contains('hidden')) {
+        container.classList.remove('hidden');
+        btnText.textContent = 'Hide Surfaces';
+        chevron.classList.add('rotate-180');
+
+        const plots = container.querySelectorAll('.js-plotly-plot');
+        plots.forEach(plot => {
+          Plotly.Plots.resize(plot);
+        });
+      } else {
+        container.classList.add('hidden');
+        btnText.textContent = 'Show Surfaces';
+        chevron.classList.remove('rotate-180');
+      }
+    }
+  </script>
+  {% endfor %}
+  </div>
+  {% endif %}
+
   <!-- Primary Charts -->
   <div class="space-y-6">
     {% for chart in charts %}
@@ -14,11 +111,11 @@
   <div class="space-y-4">
     <!-- Toggle Button -->
     <div class="flex justify-center">
-      <button onclick="toggleGreekCharts()"
-              id="greek-charts-toggle-btn"
-              class="group flex items-center gap-2 px-6 py-2 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-full text-[10px] uppercase tracking-widest text-slate-400 hover:text-white transition-all">
+      <button onclick="toggleGreekCharts()" id="greek-charts-toggle-btn"
+        class="group flex items-center gap-2 px-6 py-2 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-full text-[10px] uppercase tracking-widest text-slate-400 hover:text-white transition-all">
         <span>Show {{ greeks_charts_label }}</span>
-        <svg id="greek-charts-chevron" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg id="greek-charts-chevron" class="w-4 h-4 transition-transform duration-300" fill="none"
+          stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
         </svg>
       </button>

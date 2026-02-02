@@ -1,4 +1,5 @@
-<div class="w-full animate-fade-in space-y-4">
+<div class="w-full animate-fade-in space-y-6">
+
   <!-- Primary Stats -->
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
     <!-- Net Premium -->
@@ -73,11 +74,11 @@
 
   <!-- Toggle Greeks Button -->
   <div class="flex justify-center">
-    <button onclick="toggleStratGreeks()"
-            id="strat-greeks-toggle-btn"
-            class="group flex items-center gap-2 px-6 py-2 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-full text-[10px] uppercase tracking-widest text-slate-400 hover:text-white transition-all">
+    <button onclick="toggleStratGreeks()" id="strat-greeks-toggle-btn"
+      class="group flex items-center gap-2 px-6 py-2 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-full text-[10px] uppercase tracking-widest text-slate-400 hover:text-white transition-all">
       <span>Show Net Greeks</span>
-      <svg id="strat-greeks-chevron" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg id="strat-greeks-chevron" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor"
+        viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
       </svg>
     </button>
@@ -128,11 +129,11 @@
 
   <!-- Toggle Leg Details Button -->
   <div class="flex justify-center">
-    <button onclick="toggleLegDetails()"
-            id="leg-details-toggle-btn"
-            class="group flex items-center gap-2 px-6 py-2 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-full text-[10px] uppercase tracking-widest text-slate-400 hover:text-white transition-all">
+    <button onclick="toggleLegDetails()" id="leg-details-toggle-btn"
+      class="group flex items-center gap-2 px-6 py-2 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-full text-[10px] uppercase tracking-widest text-slate-400 hover:text-white transition-all">
       <span>Show Leg Details</span>
-      <svg id="leg-details-chevron" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg id="leg-details-chevron" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor"
+        viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
       </svg>
     </button>
@@ -143,32 +144,33 @@
     <div class="glass-panel border border-slate-700 overflow-hidden">
       <table class="w-full text-xs font-mono">
         <thead>
-        <tr class="border-b border-slate-700 text-slate-500 uppercase tracking-widest">
-          <th class="p-3 text-left">#</th>
-          <th class="p-3 text-left">Type</th>
-          <th class="p-3 text-right">Strike</th>
-          <th class="p-3 text-right">Qty</th>
-          <th class="p-3 text-right">Price</th>
-          <th class="p-3 text-right">Delta</th>
-          <th class="p-3 text-right">Gamma</th>
-        </tr>
+          <tr class="border-b border-slate-700 text-slate-500 uppercase tracking-widest">
+            <th class="p-3 text-left">#</th>
+            <th class="p-3 text-left">Type</th>
+            <th class="p-3 text-right">Strike</th>
+            <th class="p-3 text-right">Qty</th>
+            <th class="p-3 text-right">Price</th>
+            <th class="p-3 text-right">Delta</th>
+            <th class="p-3 text-right">Gamma</th>
+          </tr>
         </thead>
         <tbody>
-        {% for leg in legs %}
-        <tr class="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
-          <td class="p-3 text-slate-400">{{ leg.index }}</td>
-          <td class="p-3 {% if leg.option_type == "Call" %}text-emerald-400{% else %}text-red-400{% endif %}">
-          {{ leg.option_type }}
-          </td>
-          <td class="p-3 text-right text-white">${{ leg.strike }}</td>
-          <td class="p-3 text-right {% if leg.quantity.starts_with("-") %}text-red-400{% else %}text-emerald-400{% endif %}">
-          {{ leg.quantity }}
-          </td>
-          <td class="p-3 text-right text-amber-400">${{ leg.price }}</td>
-          <td class="p-3 text-right text-slate-300">{{ leg.delta }}</td>
-          <td class="p-3 text-right text-slate-300">{{ leg.gamma }}</td>
-        </tr>
-        {% endfor %}
+          {% for leg in legs %}
+          <tr class="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
+            <td class="p-3 text-slate-400">{{ leg.index }}</td>
+            <td class="p-3 {% if leg.option_type == " Call" %}text-emerald-400{% else %}text-red-400{% endif %}">
+              {{ leg.option_type }}
+            </td>
+            <td class="p-3 text-right text-white">${{ leg.strike }}</td>
+            <td class="p-3 text-right {% if leg.quantity.starts_with(" -") %}text-red-400{% else %}text-emerald-400{%
+              endif %}">
+              {{ leg.quantity }}
+            </td>
+            <td class="p-3 text-right text-amber-400">${{ leg.price }}</td>
+            <td class="p-3 text-right text-slate-300">{{ leg.delta }}</td>
+            <td class="p-3 text-right text-slate-300">{{ leg.gamma }}</td>
+          </tr>
+          {% endfor %}
         </tbody>
       </table>
     </div>

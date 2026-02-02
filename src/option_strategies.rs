@@ -1,9 +1,9 @@
-use rayon::prelude::*;
-use serde::{Deserialize, Serialize};
-use statrs::distribution::Normal;
 use crate::black_scholes;
 use crate::black_scholes::{Greeks, OptionType};
 use crate::utils::unzip8;
+use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
+use statrs::distribution::Normal;
 
 const MAX_STRATEGY_POINTS: usize = 200;
 const MAX_LEGS: usize = 10;
@@ -75,6 +75,11 @@ pub struct StrategyResult {
     pub net_thetas: Vec<f64>,
     pub net_vegas: Vec<f64>,
     pub net_rhos: Vec<f64>,
+
+    // 3D Surface Data (Spot x Time -> P&L)
+    pub surface_spot: Vec<f64>,
+    pub surface_time: Vec<f64>,
+    pub surface_pnl: Vec<Vec<f64>>,
 }
 
 fn leg_payoff_at_expiry(leg: &Leg, spot: f64) -> f64 {
@@ -189,8 +194,7 @@ pub fn analyze_strategy(params: &StrategyParams) -> StrategyResult {
             let payoff = strategy_payoff_at_expiry(&legs_clone, s);
             let pnl = payoff - net_premium;
 
-            let (mut cv, mut d, mut g, mut th, mut v, mut rh) =
-                (0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+            let (mut cv, mut d, mut g, mut th, mut v, mut rh) = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
             for leg in &legs_clone {
                 let bp = black_scholes::Params {
                     s,
@@ -213,8 +217,67 @@ pub fn analyze_strategy(params: &StrategyParams) -> StrategyResult {
         })
         .collect();
 
-    let (payoff_at_expiry, pnl_at_expiry, current_value, net_deltas, net_gammas, net_thetas, net_vegas, net_rhos) =
-        unzip8(curve_data);
+    // 3D Surface Generation (Spot x Time)
+    // Reduce resolution for 3D to keep payload size manageable
+    let n_3d = 30; // 30x30 = 900 points
+
+    // Time range: 0.0 to T
+    let t_min = 0.0;
+    let t_max = params.t;
+    let dt = (t_max - t_min) / (n_3d - 1) as f64;
+    let surf_time_range: Vec<f64> = (0..n_3d).map(|i| t_min + i as f64 * dt).collect();
+
+    // Spot range: same bounds as 2D but fewer points
+    let s_min_3d = s_min;
+    let s_max_3d = s_max;
+    let ds_3d = (s_max_3d - s_min_3d) / (n_3d - 1) as f64;
+    let surf_spot_range: Vec<f64> = (0..n_3d).map(|i| s_min_3d + i as f64 * ds_3d).collect();
+
+    let surface_pnl: Vec<Vec<f64>> = surf_time_range
+        .iter()
+        .map(|&t_rem| {
+            // t_rem is time remaining.
+            surf_spot_range
+                .iter()
+                .map(|&s| {
+                    if t_rem <= 1e-5 {
+                        // At expiry
+                        strategy_payoff_at_expiry(&legs_clone, s) - net_premium
+                    } else {
+                        // Before expiry
+
+                        let mut current_val = 0.0;
+                        let norm_local = Normal::new(0.0, 1.0).unwrap();
+
+                        for leg in &legs_clone {
+                            let bp = black_scholes::Params {
+                                s,
+                                k: leg.strike,
+                                t: t_rem, // Use specific time remaining
+                                r: params.r,
+                                sigma: params.sigma,
+                                option_type: leg.option_type,
+                            };
+                            current_val +=
+                                leg.quantity as f64 * black_scholes::price(&bp, &norm_local);
+                        }
+                        current_val - net_premium
+                    }
+                })
+                .collect()
+        })
+        .collect();
+
+    let (
+        payoff_at_expiry,
+        pnl_at_expiry,
+        current_value,
+        net_deltas,
+        net_gammas,
+        net_thetas,
+        net_vegas,
+        net_rhos,
+    ) = unzip8(curve_data);
 
     let breakeven_points = find_zero_crossings(&spot_range, &pnl_at_expiry);
 
@@ -222,10 +285,7 @@ pub fn analyze_strategy(params: &StrategyParams) -> StrategyResult {
         .iter()
         .cloned()
         .fold(f64::NEG_INFINITY, f64::max);
-    let max_loss = pnl_at_expiry
-        .iter()
-        .cloned()
-        .fold(f64::INFINITY, f64::min);
+    let max_loss = pnl_at_expiry.iter().cloned().fold(f64::INFINITY, f64::min);
 
     StrategyResult {
         leg_prices,
@@ -244,6 +304,9 @@ pub fn analyze_strategy(params: &StrategyParams) -> StrategyResult {
         net_thetas,
         net_vegas,
         net_rhos,
+        surface_spot: surf_spot_range,
+        surface_time: surf_time_range,
+        surface_pnl,
     }
 }
 
@@ -275,7 +338,10 @@ mod tests {
         let result = analyze_strategy(&params);
 
         // Net premium should be positive (debit spread)
-        assert!(result.net_premium > 0.0, "Bull call spread should be a debit");
+        assert!(
+            result.net_premium > 0.0,
+            "Bull call spread should be a debit"
+        );
 
         // Max loss approximately equals net premium
         assert!(
@@ -327,8 +393,16 @@ mod tests {
 
         let lower = result.breakeven_points[0];
         let upper = result.breakeven_points[1];
-        assert!(lower < 100.0, "Lower breakeven {} should be below strike", lower);
-        assert!(upper > 100.0, "Upper breakeven {} should be above strike", upper);
+        assert!(
+            lower < 100.0,
+            "Lower breakeven {} should be below strike",
+            lower
+        );
+        assert!(
+            upper > 100.0,
+            "Upper breakeven {} should be above strike",
+            upper
+        );
     }
 
     #[test]

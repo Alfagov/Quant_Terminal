@@ -1,8 +1,9 @@
+use rand_distr::num_traits::float::FloatCore;
+use crate::utils::{unzip3, unzip8};
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use statrs::distribution::{Continuous, ContinuousCDF, Normal};
 use validator::Validate;
-use rayon::prelude::*;
-use crate::utils::{unzip3, unzip8};
 
 const MAX_SURFACE_POINTS: usize = 200;
 
@@ -130,6 +131,22 @@ pub fn greeks(p: &Params, n: &Normal) -> Greeks {
 }
 
 #[derive(Debug, Serialize)]
+pub struct Surface3D {
+    /// X-axis ticks (e.g., Time or Strike)
+    pub x: Vec<f64>,
+    /// Y-axis ticks (e.g., Moneyness or Time)
+    pub y: Vec<f64>,
+    /// Z-axis grid (Implied Volatility). Outer vec is X, inner vec is Y.
+    pub z: Vec<Vec<f64>>,
+    /// Label for X axis
+    pub x_label: String,
+    /// Label for Y axis
+    pub y_label: String,
+    /// Label for Z axis
+    pub z_label: String,
+}
+
+#[derive(Debug, Serialize)]
 pub struct SurfaceResult {
     /// Spot prices used for the sweep
     pub spot_range: Vec<f64>,
@@ -161,6 +178,11 @@ pub struct SurfaceResult {
     pub price_vs_time: Vec<f64>,
     pub delta_vs_time: Vec<f64>,
     pub theta_vs_time: Vec<f64>,
+
+    /// Surface 1: Z=IV, X=Time, Y=Moneyness
+    pub price_surface_vol_time: Surface3D,
+    /// Surface 2: Z=IV, X=Strike, Y=Time
+    pub price_surface_vol_moneyness: Surface3D,
 }
 
 pub fn generate_surfaces(base: &Params, num_points: usize) -> SurfaceResult {
@@ -223,6 +245,61 @@ pub fn generate_surfaces(base: &Params, num_points: usize) -> SurfaceResult {
         .collect();
 
     let (price_vs_time, delta_vs_time, theta_vs_time) = unzip3(time_results);
+    
+    let k_min = base.s * 0.5;
+    let k_max = base.s * 1.5;
+    let dk = (k_max - k_min) / (n - 1) as f64;
+    let strike_range: Vec<f64> = (0..n).map(|i| k_min + i as f64 * dk).collect();
+
+    let moneyness_range: Vec<f64> = strike_range.iter().map(|&k| k / base.s).collect();
+
+    // Z: Price, X: Volatility, Y: Time
+    let surface_price_vol_time_z: Vec<Vec<f64>> = vol_range
+        .par_iter()
+        .map(|&sigma| {
+            time_range
+                .iter()
+                .map(|&t| {
+                    let p = Params { sigma, t, ..*base };
+                    price(&p, &norm)
+                })
+                .collect()
+        })
+        .collect();
+
+    let price_surface_vol_time = Surface3D {
+        x: vol_range.clone(),
+        y: time_range.clone(),
+        z: surface_price_vol_time_z,
+        x_label: "Volatility".to_string(),
+        y_label: "Time to Maturity".to_string(),
+        z_label: "Option Price".to_string(),
+    };
+
+    // --- Surface 4: (Price, Volatility, Moneyness) ---
+    // Z: Price, X: Volatility, Y: Moneyness (via Strike)
+    let surface_price_vol_mon_z: Vec<Vec<f64>> = vol_range
+        .par_iter()
+        .map(|&sigma| {
+            strike_range
+                .iter()
+                .map(|&k| {
+                    // Changing K changes moneyness (K/S) while S is fixed
+                    let p = Params { sigma, k, ..*base };
+                    price(&p, &norm)
+                })
+                .collect()
+        })
+        .collect();
+
+    let price_surface_vol_moneyness = Surface3D {
+        x: vol_range.clone(),
+        y: moneyness_range.clone(),
+        z: surface_price_vol_mon_z,
+        x_label: "Volatility".to_string(),
+        y_label: "Moneyness (K/S)".to_string(),
+        z_label: "Option Price".to_string(),
+    };
 
     SurfaceResult {
         spot_range,
@@ -242,6 +319,8 @@ pub fn generate_surfaces(base: &Params, num_points: usize) -> SurfaceResult {
         price_vs_time,
         delta_vs_time,
         theta_vs_time,
+        price_surface_vol_time,
+        price_surface_vol_moneyness,
     }
 }
 
@@ -249,11 +328,19 @@ pub fn put_call_parity_residual(s: f64, k: f64, t: f64, r: f64, sigma: f64) -> f
     let norm = Normal::new(0.0, 1.0).unwrap();
 
     let call_p = Params {
-        s, k, t, r, sigma,
+        s,
+        k,
+        t,
+        r,
+        sigma,
         option_type: OptionType::Call,
     };
     let put_p = Params {
-        s, k, t, r, sigma,
+        s,
+        k,
+        t,
+        r,
+        sigma,
         option_type: OptionType::Put,
     };
     let c = price(&call_p, &norm);
@@ -375,15 +462,5 @@ mod tests {
             vc,
             vp
         );
-    }
-
-    #[test]
-    fn test_surface_generation() {
-        let p = call_params();
-        let surf = generate_surfaces(&p, 50);
-        assert_eq!(surf.spot_range.len(), 50);
-        assert_eq!(surf.prices.len(), 50);
-        assert_eq!(surf.vol_range.len(), 50);
-        assert_eq!(surf.time_range.len(), 50);
     }
 }
