@@ -1,12 +1,12 @@
+use axum::error_handling::HandleErrorLayer;
+use axum::http::{Method, StatusCode};
+use axum::routing::{get, post};
+use axum::{BoxError, Router};
 use std::net::SocketAddr;
 use std::time::Duration;
-use axum::http::{Method, StatusCode};
-use axum::{BoxError, Router};
-use axum::error_handling::HandleErrorLayer;
-use axum::routing::{get, post};
+use tower::ServiceBuilder;
 use tower::buffer::BufferLayer;
 use tower::load_shed::LoadShedLayer;
-use tower::ServiceBuilder;
 use tower::timeout::TimeoutLayer;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::limit::RequestBodyLimitLayer;
@@ -15,15 +15,16 @@ use tower_http::trace::TraceLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
-mod market_maker;
+mod avellaneda_stoikov;
 mod binomial_poisson;
-mod brownian_motion;
-mod handlers;
-mod charts;
 mod black_scholes;
-mod utils;
-mod option_strategies;
 mod bonds;
+mod brownian_motion;
+mod charts;
+mod handlers;
+mod market_maker;
+mod option_strategies;
+mod utils;
 
 pub struct SecurityLimits;
 
@@ -43,9 +44,15 @@ impl SecurityLimits {
 
 async fn handle_error(error: BoxError) -> (StatusCode, String) {
     if error.is::<tower::timeout::error::Elapsed>() {
-        (StatusCode::REQUEST_TIMEOUT, "Request took too long".to_string())
+        (
+            StatusCode::REQUEST_TIMEOUT,
+            "Request took too long".to_string(),
+        )
     } else {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("Unhandled internal error: {}", error))
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Unhandled internal error: {}", error),
+        )
     }
 }
 
@@ -64,7 +71,6 @@ async fn main() -> anyhow::Result<()> {
         .allow_origin(Any)
         .allow_headers(Any);
 
-
     let app = Router::new()
         .route("/", get(handlers::serve_index))
         .route("/market-maker", get(handlers::serve_market_maker))
@@ -72,18 +78,29 @@ async fn main() -> anyhow::Result<()> {
         .route("/binomial-poisson", get(handlers::serve_binomial_poisson))
         .route("/brownian-motion", get(handlers::serve_brownian_motion))
         .route("/black-scholes", get(handlers::serve_black_scholes))
-
         .route("/simulate-glosten", post(handlers::simulate_glosten))
-        .route("/simulate-binomial-poisson", post(handlers::simulate_binomial_poisson))
-        .route("/simulate-brownian-motion", post(handlers::simulate_brownian_motion))
-        .route("/simulate-black-scholes", post(handlers::simulate_black_scholes))
+        .route(
+            "/simulate-binomial-poisson",
+            post(handlers::simulate_binomial_poisson),
+        )
+        .route(
+            "/simulate-brownian-motion",
+            post(handlers::simulate_brownian_motion),
+        )
+        .route(
+            "/simulate-black-scholes",
+            post(handlers::simulate_black_scholes),
+        )
         .route("/option-strategies", get(handlers::serve_option_strategies))
         .route("/analyze-strategy", post(handlers::analyze_option_strategy))
         .route("/bonds", get(handlers::serve_bonds))
         .route("/analyze-bonds", post(handlers::analyze_bonds))
-
+        .route(
+            "/avellaneda-stoikov",
+            get(handlers::serve_avellaneda_stoikov),
+        )
+        .route("/simulate-avellaneda", post(handlers::simulate_avellaneda))
         .nest_service("/static", ServeDir::new("static"))
-
         // Middleware layers
         .layer(
             ServiceBuilder::new()
@@ -93,7 +110,7 @@ async fn main() -> anyhow::Result<()> {
                 .layer(BufferLayer::new(1024))
                 .layer(TimeoutLayer::new(SecurityLimits::REQUEST_TIMEOUT))
                 .layer(RequestBodyLimitLayer::new(SecurityLimits::MAX_BODY_SIZE))
-                .layer(TraceLayer::new_for_http())
+                .layer(TraceLayer::new_for_http()),
         );
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));

@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en" class="scroll-smooth">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -11,484 +12,534 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-            href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap"
-            rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
 
     <link rel="stylesheet" href="/static/css/styles.css" />
 </head>
 
 <body
-        class="bg-slate-950 text-slate-200 min-h-screen relative overflow-x-hidden selection:bg-blue-500/30 selection:text-blue-200"
->
-<!-- Background Effects -->
-<div class="fixed inset-0 pointer-events-none z-0">
-    <div
-            class="absolute top-0 right-0 w-full h-[500px] bg-amber-900/10 blur-[100px] rounded-full opacity-40"
-    ></div>
-    <div class="absolute inset-0 bg-grid-pattern opacity-[0.15]"></div>
-</div>
-
-<!-- Navigation -->
-<nav
-        class="fixed w-full z-50 top-0 transition-all duration-300 glass-panel border-b-0 border-b border-white/5"
->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-20">
-            <div class="flex items-center gap-3">
-                <a href="/" class="group flex items-center gap-3">
-                    <div
-                            class="w-10 h-10 bg-blue-600/20 border border-blue-500/50 flex items-center justify-center shadow-lg shadow-blue-500/10 transition-all group-hover:bg-blue-600/30"
-                    >
-                        <span class="text-blue-400 font-bold text-xl">Q</span>
-                    </div>
-                    <span class="text-white text-lg font-bold tracking-tight"
-                    >QUANT<span class="text-blue-400">SIM</span>_TERMINAL</span>
-                </a>
-                <span class="text-slate-600 mx-2 text-xl font-light">/</span>
-                <span class="text-slate-400 text-sm font-bold uppercase tracking-wider">OPT_STRAT</span>
-            </div>
-            <div class="flex items-center space-x-6">
-                <div class="flex items-center gap-2 text-xs text-slate-500 font-mono">
-                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    KERNEL_ACTIVE
-                </div>
-                <a
-                        href="/"
-                        class="text-xs uppercase tracking-widest font-bold text-slate-400 hover:text-white transition-colors border border-slate-700 hover:border-slate-500 px-4 py-2"
-                >
-                    [ ESC ] BACK
-                </a>
-            </div>
-        </div>
+    class="bg-slate-950 text-slate-200 min-h-screen relative overflow-x-hidden selection:bg-blue-500/30 selection:text-blue-200">
+    <!-- Background Effects -->
+    <div class="fixed inset-0 pointer-events-none z-0">
+        <div class="absolute top-0 right-0 w-full h-[500px] bg-amber-900/10 blur-[100px] rounded-full opacity-40"></div>
+        <div class="absolute inset-0 bg-grid-pattern opacity-[0.15]"></div>
     </div>
-</nav>
 
-<div class="z-10 pt-28 pb-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <!-- Sidebar Controls -->
-        <div class="lg:col-span-1">
-            <div class="glass-panel p-6 sticky top-24 animate-fade-in">
-                <div class="flex items-center justify-between mb-6 border-b border-slate-700 pb-4">
-                    <h2 class="text-sm font-bold text-white uppercase tracking-wider">
-                        > PARAMETERS
-                    </h2>
-                    <span class="text-xs text-slate-500">[CONFIG]</span>
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 top-0 transition-all duration-300 glass-panel border-b-0 border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <div class="flex items-center gap-3">
+                    <a href="/" class="group flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 bg-blue-600/20 border border-blue-500/50 flex items-center justify-center shadow-lg shadow-blue-500/10 transition-all group-hover:bg-blue-600/30">
+                            <span class="text-blue-400 font-bold text-xl">Q</span>
+                        </div>
+                        <span class="text-white text-lg font-bold tracking-tight">QUANT<span
+                                class="text-blue-400">SIM</span>_TERMINAL</span>
+                    </a>
+                    <span class="text-slate-600 mx-2 text-xl font-light">/</span>
+                    <span class="text-slate-400 text-sm font-bold uppercase tracking-wider">OPT_STRAT</span>
                 </div>
-
-                <!-- HTMX Form -->
-                <form
-                        id="strategy-form"
-                        hx-post="/analyze-strategy"
-                        hx-target="#stats-section"
-                        hx-swap="innerHTML"
-                        hx-indicator="#loading"
-                        class="space-y-5"
-                >
-                    <!-- Spot Price -->
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2 flex justify-between">
-                            <span>Spot_Price (S)</span>
-                            <span id="sValue" class="text-blue-400">100.00</span>
-                        </label>
-                        <input
-                                type="range"
-                                name="s"
-                                id="s"
-                                min="10"
-                                max="500"
-                                step="1"
-                                value="100"
-                                oninput="document.getElementById('sValue').textContent = parseFloat(this.value).toFixed(2)"
-                                class="w-full"
-                        />
+                <div class="flex items-center space-x-6">
+                    <div class="flex items-center gap-2 text-xs text-slate-500 font-mono">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        KERNEL_ACTIVE
                     </div>
-
-                    <!-- Time to Expiry -->
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2 flex justify-between">
-                            <span>Expiry (T years)</span>
-                            <span id="tValue" class="text-blue-400">0.50</span>
-                        </label>
-                        <input
-                                type="range"
-                                name="t"
-                                id="t"
-                                min="0.01"
-                                max="5"
-                                step="0.01"
-                                value="0.50"
-                                oninput="document.getElementById('tValue').textContent = parseFloat(this.value).toFixed(2)"
-                                class="w-full"
-                        />
-                    </div>
-
-                    <!-- Risk-free Rate -->
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2 flex justify-between">
-                            <span>Risk_Free (r)</span>
-                            <span id="rValue" class="text-blue-400">0.0500</span>
-                        </label>
-                        <input
-                                type="range"
-                                name="r"
-                                id="r"
-                                min="-0.05"
-                                max="0.20"
-                                step="0.005"
-                                value="0.05"
-                                oninput="document.getElementById('rValue').textContent = parseFloat(this.value).toFixed(4)"
-                                class="w-full"
-                        />
-                    </div>
-
-                    <!-- Volatility -->
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2 flex justify-between">
-                            <span>Volatility (σ)</span>
-                            <span id="sigmaValue" class="text-blue-400">0.2000</span>
-                        </label>
-                        <input
-                                type="range"
-                                name="sigma"
-                                id="sigma"
-                                min="0.01"
-                                max="1.50"
-                                step="0.01"
-                                value="0.20"
-                                oninput="document.getElementById('sigmaValue').textContent = parseFloat(this.value).toFixed(4)"
-                                class="w-full"
-                        />
-                    </div>
-
-                    <!-- Surface Points -->
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2 flex justify-between">
-                            <span>Surface_Points</span>
-                            <span id="pointsValue" class="text-blue-400">100</span>
-                        </label>
-                        <input
-                                type="range"
-                                name="num_points"
-                                id="num_points"
-                                min="20"
-                                max="200"
-                                step="10"
-                                value="100"
-                                oninput="document.getElementById('pointsValue').textContent = this.value"
-                                class="w-full"
-                        />
-                    </div>
-
-                    <!-- Strategy Presets -->
-                    <div class="border-t border-slate-700 pt-4">
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-3">
-                            Strategy_Presets
-                        </label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button type="button" onclick="applyPreset('bull_call')"
-                                    class="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition-all">
-                                Bull Call
-                            </button>
-                            <button type="button" onclick="applyPreset('bear_put')"
-                                    class="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all">
-                                Bear Put
-                            </button>
-                            <button type="button" onclick="applyPreset('straddle')"
-                                    class="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 transition-all">
-                                Straddle
-                            </button>
-                            <button type="button" onclick="applyPreset('strangle')"
-                                    class="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-purple-500/30 text-purple-400 hover:bg-purple-500/10 transition-all">
-                                Strangle
-                            </button>
-                            <button type="button" onclick="applyPreset('butterfly')"
-                                    class="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-all">
-                                Butterfly
-                            </button>
-                            <button type="button" onclick="applyPreset('iron_condor')"
-                                    class="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-all">
-                                Iron Condor
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Option Legs -->
-                    <div class="border-t border-slate-700 pt-4">
-                        <div class="flex items-center justify-between mb-3">
-                            <label class="block text-xs font-bold text-slate-400 uppercase">
-                                Option_Legs
-                            </label>
-                            <button type="button" onclick="addLeg('call', getSpot(), 1)"
-                                    class="text-[10px] font-bold uppercase tracking-wider text-blue-400 hover:text-blue-300 border border-blue-500/30 px-2 py-1 hover:bg-blue-500/10 transition-all">
-                                + Add
-                            </button>
-                        </div>
-
-                        <div id="legs-container" class="space-y-2">
-                            <!-- Dynamic legs rendered here -->
-                        </div>
-
-                        <div id="no-legs-msg" class="text-center py-4 text-slate-600 text-[10px] font-mono hidden">
-                            No legs added. Use presets or click + Add.
-                        </div>
-                    </div>
-
-                    <!-- Hidden field for legs JSON -->
-                    <input type="hidden" name="legs_json" id="legs_json" value="[]" />
-
-                    <!-- Buttons -->
-                    <div class="pt-2 space-y-3">
-                        <button
-                                type="submit"
-                                class="w-full bg-amber-600 hover:bg-amber-500 text-white py-3 text-xs font-bold uppercase tracking-widest transition-all hover:shadow-[0_0_15px_rgba(217,119,6,0.5)] border border-amber-500"
-                        >
-                            >> Analyze_Strategy
-                        </button>
-                        <button
-                                type="button"
-                                onclick="resetAll()"
-                                class="w-full bg-transparent hover:bg-slate-800 text-slate-400 py-3 text-xs font-bold uppercase tracking-widest transition-colors border border-slate-700"
-                        >
-                            Reset_All
-                        </button>
-                    </div>
-
-                    <div
-                            id="loading"
-                            class="htmx-indicator flex justify-center items-center gap-2 text-amber-400 text-xs font-mono"
-                    >
-                        <span class="animate-spin">/</span>
-                        <span>ANALYZING_STRATEGY...</span>
-                    </div>
-                </form>
+                    <a href="/"
+                        class="text-xs uppercase tracking-widest font-bold text-slate-400 hover:text-white transition-colors border border-slate-700 hover:border-slate-500 px-4 py-2">
+                        [ ESC ] BACK
+                    </a>
+                </div>
             </div>
         </div>
+    </nav>
 
-        <!-- Main Content -->
-        <div class="lg:col-span-3">
-            <!-- Info Box -->
-            <div class="mb-6 glass-panel p-4 border-l-2 border-amber-500 flex items-start gap-4">
-                <div class="mt-1 text-amber-400">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        ></path>
-                    </svg>
-                </div>
-                <div class="text-xs text-slate-400 leading-relaxed">
-                    <strong class="text-white block mb-1 uppercase tracking-wide">Strategy Builder:</strong>
-                    Construct multi-leg option strategies by adding calls and puts with different strikes.
-                    Positive quantity = buy (long), negative = sell (short).
-                    Visualize payoff diagrams, P&L at expiry, strategy cost, breakeven points, and combined Greeks.
-                    Use presets for common strategies: spreads, straddles, butterflies, and condors.
+    <div class="z-10 pt-28 pb-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Sidebar Controls -->
+            <div class="lg:col-span-1">
+                <div class="glass-panel p-6 sticky top-24 animate-fade-in z-40">
+                    <div class="flex items-center justify-between mb-6 border-b border-slate-700 pb-4">
+                        <h2 class="text-sm font-bold text-white uppercase tracking-wider">
+                            > PARAMETERS
+                        </h2>
+                        <span class="text-xs text-slate-500">[CONFIG]</span>
+                    </div>
+
+                    <!-- HTMX Form -->
+                    <form id="strategy-form" hx-post="/analyze-strategy" hx-target="#stats-section" hx-swap="innerHTML"
+                        hx-indicator="#loading" class="space-y-5">
+                        <!-- Spot Price -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2 flex justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span>Spot_Price (S)</span>
+                                    <div class="relative group">
+                                        <div class="cursor-help text-slate-500 hover:text-amber-400 transition-colors">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                            </svg>
+                                        </div>
+                                        <div
+                                            class="absolute bottom-full left-0 mb-2 w-48 p-2 bg-slate-800 text-xs text-slate-300 rounded border border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case font-normal tracking-normal">
+                                            Current market price of the underlying asset.
+                                        </div>
+                                    </div>
+                                </div>
+                                <span id="sValue" class="text-blue-400">100.00</span>
+                            </label>
+                            <input type="range" name="s" id="s" min="10" max="500" step="1" value="100"
+                                oninput="document.getElementById('sValue').textContent = parseFloat(this.value).toFixed(2)"
+                                class="w-full" />
+                        </div>
+
+                        <!-- Time to Expiry -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2 flex justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span>Expiry (T years)</span>
+                                    <div class="relative group">
+                                        <div class="cursor-help text-slate-500 hover:text-amber-400 transition-colors">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                            </svg>
+                                        </div>
+                                        <div
+                                            class="absolute bottom-full left-0 mb-2 w-48 p-2 bg-slate-800 text-xs text-slate-300 rounded border border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case font-normal tracking-normal">
+                                            Time until the option strategies expire.
+                                        </div>
+                                    </div>
+                                </div>
+                                <span id="tValue" class="text-blue-400">0.50</span>
+                            </label>
+                            <input type="range" name="t" id="t" min="0.01" max="5" step="0.01" value="0.50"
+                                oninput="document.getElementById('tValue').textContent = parseFloat(this.value).toFixed(2)"
+                                class="w-full" />
+                        </div>
+
+                        <!-- Risk-free Rate -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2 flex justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span>Risk_Free (r)</span>
+                                    <div class="relative group">
+                                        <div class="cursor-help text-slate-500 hover:text-amber-400 transition-colors">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                            </svg>
+                                        </div>
+                                        <div
+                                            class="absolute bottom-full left-0 mb-2 w-48 p-2 bg-slate-800 text-xs text-slate-300 rounded border border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case font-normal tracking-normal">
+                                            risk-free interest rate used for pricing.
+                                        </div>
+                                    </div>
+                                </div>
+                                <span id="rValue" class="text-blue-400">0.0500</span>
+                            </label>
+                            <input type="range" name="r" id="r" min="-0.05" max="0.20" step="0.005" value="0.05"
+                                oninput="document.getElementById('rValue').textContent = parseFloat(this.value).toFixed(4)"
+                                class="w-full" />
+                        </div>
+
+                        <!-- Volatility -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2 flex justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span>Volatility (σ)</span>
+                                    <div class="relative group">
+                                        <div class="cursor-help text-slate-500 hover:text-amber-400 transition-colors">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                            </svg>
+                                        </div>
+                                        <div
+                                            class="absolute bottom-full left-0 mb-2 w-48 p-2 bg-slate-800 text-xs text-slate-300 rounded border border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case font-normal tracking-normal">
+                                            Implied volatility of the options.
+                                        </div>
+                                    </div>
+                                </div>
+                                <span id="sigmaValue" class="text-blue-400">0.2000</span>
+                            </label>
+                            <input type="range" name="sigma" id="sigma" min="0.01" max="1.50" step="0.01" value="0.20"
+                                oninput="document.getElementById('sigmaValue').textContent = parseFloat(this.value).toFixed(4)"
+                                class="w-full" />
+                        </div>
+
+                        <!-- Surface Points -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2 flex justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span>Surface_Points</span>
+                                    <div class="relative group">
+                                        <div class="cursor-help text-slate-500 hover:text-amber-400 transition-colors">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                            </svg>
+                                        </div>
+                                        <div
+                                            class="absolute bottom-full left-0 mb-2 w-48 p-2 bg-slate-800 text-xs text-slate-300 rounded border border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case font-normal tracking-normal">
+                                            Resolution of the payoff and profit charts.
+                                        </div>
+                                    </div>
+                                </div>
+                                <span id="pointsValue" class="text-blue-400">100</span>
+                            </label>
+                            <input type="range" name="num_points" id="num_points" min="20" max="200" step="10"
+                                value="100" oninput="document.getElementById('pointsValue').textContent = this.value"
+                                class="w-full" />
+                        </div>
+
+                        <!-- Strategy Presets -->
+                        <div class="border-t border-slate-700 pt-4">
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-3">
+                                <div class="flex items-center gap-2">
+                                    <span>Strategy_Presets</span>
+                                    <div class="relative group">
+                                        <div class="cursor-help text-slate-500 hover:text-amber-400 transition-colors">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                            </svg>
+                                        </div>
+                                        <div
+                                            class="absolute bottom-full left-0 mb-2 w-48 p-2 bg-slate-800 text-xs text-slate-300 rounded border border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case font-normal tracking-normal">
+                                            Quickly load common multi-leg option strategies.
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button type="button" onclick="applyPreset('bull_call')"
+                                    class="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition-all">
+                                    Bull Call
+                                </button>
+                                <button type="button" onclick="applyPreset('bear_put')"
+                                    class="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all">
+                                    Bear Put
+                                </button>
+                                <button type="button" onclick="applyPreset('straddle')"
+                                    class="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 transition-all">
+                                    Straddle
+                                </button>
+                                <button type="button" onclick="applyPreset('strangle')"
+                                    class="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-purple-500/30 text-purple-400 hover:bg-purple-500/10 transition-all">
+                                    Strangle
+                                </button>
+                                <button type="button" onclick="applyPreset('butterfly')"
+                                    class="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-all">
+                                    Butterfly
+                                </button>
+                                <button type="button" onclick="applyPreset('iron_condor')"
+                                    class="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-all">
+                                    Iron Condor
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Option Legs -->
+                        <div class="border-t border-slate-700 pt-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <label class="block text-xs font-bold text-slate-400 uppercase">
+                                    <div class="flex items-center gap-2">
+                                        <span>Option_Legs</span>
+                                        <div class="relative group">
+                                            <div
+                                                class="cursor-help text-slate-500 hover:text-amber-400 transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <circle cx="12" cy="12" r="10"></circle>
+                                                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                                </svg>
+                                            </div>
+                                            <div
+                                                class="absolute bottom-full left-0 mb-2 w-48 p-2 bg-slate-800 text-xs text-slate-300 rounded border border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 normal-case font-normal tracking-normal">
+                                                Build custom strategies by adding individual option legs.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </label>
+                                <button type="button" onclick="addLeg('call', getSpot(), 1)"
+                                    class="text-[10px] font-bold uppercase tracking-wider text-blue-400 hover:text-blue-300 border border-blue-500/30 px-2 py-1 hover:bg-blue-500/10 transition-all">
+                                    + Add
+                                </button>
+                            </div>
+
+                            <div id="legs-container" class="space-y-2">
+                                <!-- Dynamic legs rendered here -->
+                            </div>
+
+                            <div id="no-legs-msg" class="text-center py-4 text-slate-600 text-[10px] font-mono hidden">
+                                No legs added. Use presets or click + Add.
+                            </div>
+                        </div>
+
+                        <!-- Hidden field for legs JSON -->
+                        <input type="hidden" name="legs_json" id="legs_json" value="[]" />
+
+                        <!-- Buttons -->
+                        <div class="pt-2 space-y-3">
+                            <button type="submit"
+                                class="w-full bg-amber-600 hover:bg-amber-500 text-white py-3 text-xs font-bold uppercase tracking-widest transition-all hover:shadow-[0_0_15px_rgba(217,119,6,0.5)] border border-amber-500">
+                                >> Analyze_Strategy
+                            </button>
+                            <button type="button" onclick="resetAll()"
+                                class="w-full bg-transparent hover:bg-slate-800 text-slate-400 py-3 text-xs font-bold uppercase tracking-widest transition-colors border border-slate-700">
+                                Reset_All
+                            </button>
+                        </div>
+
+                        <div id="loading"
+                            class="htmx-indicator flex justify-center items-center gap-2 text-amber-400 text-xs font-mono">
+                            <span class="animate-spin">/</span>
+                            <span>ANALYZING_STRATEGY...</span>
+                        </div>
+                    </form>
                 </div>
             </div>
 
-            <div
-                    id="stats-section"
-                    class="space-y-6 min-h-[400px] glass-panel p-1 border border-slate-800 items-center justify-center"
-            >
-                <!-- Initial placeholder -->
-                <div class="text-center p-12">
-                    <div class="inline-flex items-center justify-center w-16 h-16 bg-slate-900 rounded-full border border-slate-700 mb-4 text-slate-500">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="1.5"
-                                    d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
-                            ></path>
+            <!-- Main Content -->
+            <div class="lg:col-span-3">
+                <!-- Info Box -->
+                <div class="mb-6 glass-panel p-4 border-l-2 border-amber-500 flex items-start gap-4">
+                    <div class="mt-1 text-amber-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-lg font-bold text-white uppercase tracking-widest mb-2">
-                        Awaiting Strategy
-                    </h3>
-                    <p class="text-slate-500 text-xs font-mono">
-                        > Select a preset or add option legs<br />
-                        > Click ANALYZE_STRATEGY to compute
-                    </p>
+                    <div class="text-xs text-slate-400 leading-relaxed">
+                        <strong class="text-white block mb-1 uppercase tracking-wide">Strategy Builder:</strong>
+                        Construct multi-leg option strategies by adding calls and puts with different strikes.
+                        Positive quantity = buy (long), negative = sell (short).
+                        Visualize payoff diagrams, P&L at expiry, strategy cost, breakeven points, and combined Greeks.
+                        Use presets for common strategies: spreads, straddles, butterflies, and condors.
+                    </div>
+                </div>
+
+                <div id="stats-section"
+                    class="space-y-6 min-h-[400px] glass-panel p-1 border border-slate-800 items-center justify-center">
+                    <!-- Initial placeholder -->
+                    <div class="text-center p-12">
+                        <div
+                            class="inline-flex items-center justify-center w-16 h-16 bg-slate-900 rounded-full border border-slate-700 mb-4 text-slate-500">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z">
+                                </path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-bold text-white uppercase tracking-widest mb-2">
+                            Awaiting Strategy
+                        </h3>
+                        <p class="text-slate-500 text-xs font-mono">
+                            > Select a preset or add option legs<br />
+                            > Click ANALYZE_STRATEGY to compute
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<script>
-    // ── Leg Management ────────────────────────────────────────────────────
-    let legs = [];
-    let legIdCounter = 0;
+    <script>
+        // ── Leg Management ────────────────────────────────────────────────────
+        let legs = [];
+        let legIdCounter = 0;
 
-    function getSpot() {
-        return parseFloat(document.getElementById('s').value);
-    }
+        function getSpot() {
+            return parseFloat(document.getElementById('s').value);
+        }
 
-    function addLeg(type, strike, quantity) {
-        legs.push({ id: legIdCounter++, type: type, strike: strike, quantity: quantity });
-        renderLegs();
-    }
+        function addLeg(type, strike, quantity) {
+            legs.push({ id: legIdCounter++, type: type, strike: strike, quantity: quantity });
+            renderLegs();
+        }
 
-    function removeLeg(id) {
-        legs = legs.filter(function(l) { return l.id !== id; });
-        renderLegs();
-    }
+        function removeLeg(id) {
+            legs = legs.filter(function (l) { return l.id !== id; });
+            renderLegs();
+        }
 
-    function renderLegs() {
-        var container = document.getElementById('legs-container');
-        var noLegsMsg = document.getElementById('no-legs-msg');
+        function renderLegs() {
+            var container = document.getElementById('legs-container');
+            var noLegsMsg = document.getElementById('no-legs-msg');
 
-        if (legs.length === 0) {
-            container.innerHTML = '';
-            noLegsMsg.classList.remove('hidden');
+            if (legs.length === 0) {
+                container.innerHTML = '';
+                noLegsMsg.classList.remove('hidden');
+                syncHiddenField();
+                return;
+            }
+
+            noLegsMsg.classList.add('hidden');
+            var html = '';
+
+            for (var i = 0; i < legs.length; i++) {
+                var leg = legs[i];
+                var callSel = leg.type === 'call' ? ' selected' : '';
+                var putSel = leg.type === 'put' ? ' selected' : '';
+
+                html += '<div class="flex items-center gap-1.5 p-2 bg-slate-900/80 border border-slate-800 rounded" data-leg-id="' + leg.id + '">'
+                    + '<span class="text-[10px] text-slate-600 font-mono w-4 shrink-0">' + (i + 1) + '</span>'
+                    + '<select id="type_' + leg.id + '" onchange="updateLeg(' + leg.id + ')" '
+                    + 'class="bg-slate-800 border border-slate-700 text-slate-300 text-[10px] p-1 w-16 focus:outline-none focus:border-blue-500 uppercase">'
+                    + '<option value="call"' + callSel + '>Call</option>'
+                    + '<option value="put"' + putSel + '>Put</option>'
+                    + '</select>'
+                    + '<div class="flex-1 flex items-center gap-1">'
+                    + '<span class="text-[10px] text-slate-600">K:</span>'
+                    + '<input type="number" id="strike_' + leg.id + '" value="' + leg.strike + '" '
+                    + 'onchange="updateLeg(' + leg.id + ')" '
+                    + 'class="bg-slate-800 border border-slate-700 text-slate-300 text-[10px] p-1 w-16 focus:outline-none focus:border-blue-500 font-mono" />'
+                    + '</div>'
+                    + '<div class="flex items-center gap-1">'
+                    + '<span class="text-[10px] text-slate-600">Q:</span>'
+                    + '<input type="number" id="qty_' + leg.id + '" value="' + leg.quantity + '" '
+                    + 'onchange="updateLeg(' + leg.id + ')" '
+                    + 'class="bg-slate-800 border border-slate-700 text-slate-300 text-[10px] p-1 w-12 focus:outline-none focus:border-blue-500 font-mono" />'
+                    + '</div>'
+                    + '<button type="button" onclick="removeLeg(' + leg.id + ')" '
+                    + 'class="text-slate-600 hover:text-red-400 transition-colors p-1 text-xs shrink-0">'
+                    + 'X'
+                    + '</button>'
+                    + '</div>';
+            }
+
+            container.innerHTML = html;
             syncHiddenField();
-            return;
         }
 
-        noLegsMsg.classList.add('hidden');
-        var html = '';
-
-        for (var i = 0; i < legs.length; i++) {
-            var leg = legs[i];
-            var callSel = leg.type === 'call' ? ' selected' : '';
-            var putSel = leg.type === 'put' ? ' selected' : '';
-
-            html += '<div class="flex items-center gap-1.5 p-2 bg-slate-900/80 border border-slate-800 rounded" data-leg-id="' + leg.id + '">'
-                + '<span class="text-[10px] text-slate-600 font-mono w-4 shrink-0">' + (i + 1) + '</span>'
-                + '<select id="type_' + leg.id + '" onchange="updateLeg(' + leg.id + ')" '
-                + 'class="bg-slate-800 border border-slate-700 text-slate-300 text-[10px] p-1 w-16 focus:outline-none focus:border-blue-500 uppercase">'
-                + '<option value="call"' + callSel + '>Call</option>'
-                + '<option value="put"' + putSel + '>Put</option>'
-                + '</select>'
-                + '<div class="flex-1 flex items-center gap-1">'
-                + '<span class="text-[10px] text-slate-600">K:</span>'
-                + '<input type="number" id="strike_' + leg.id + '" value="' + leg.strike + '" '
-                + 'onchange="updateLeg(' + leg.id + ')" '
-                + 'class="bg-slate-800 border border-slate-700 text-slate-300 text-[10px] p-1 w-16 focus:outline-none focus:border-blue-500 font-mono" />'
-                + '</div>'
-                + '<div class="flex items-center gap-1">'
-                + '<span class="text-[10px] text-slate-600">Q:</span>'
-                + '<input type="number" id="qty_' + leg.id + '" value="' + leg.quantity + '" '
-                + 'onchange="updateLeg(' + leg.id + ')" '
-                + 'class="bg-slate-800 border border-slate-700 text-slate-300 text-[10px] p-1 w-12 focus:outline-none focus:border-blue-500 font-mono" />'
-                + '</div>'
-                + '<button type="button" onclick="removeLeg(' + leg.id + ')" '
-                + 'class="text-slate-600 hover:text-red-400 transition-colors p-1 text-xs shrink-0">'
-                + 'X'
-                + '</button>'
-                + '</div>';
+        function updateLeg(id) {
+            for (var i = 0; i < legs.length; i++) {
+                if (legs[i].id === id) {
+                    var typeEl = document.getElementById('type_' + id);
+                    var strikeEl = document.getElementById('strike_' + id);
+                    var qtyEl = document.getElementById('qty_' + id);
+                    if (typeEl) legs[i].type = typeEl.value;
+                    if (strikeEl) legs[i].strike = parseFloat(strikeEl.value) || 0;
+                    if (qtyEl) legs[i].quantity = parseInt(qtyEl.value) || 0;
+                    break;
+                }
+            }
+            syncHiddenField();
         }
 
-        container.innerHTML = html;
-        syncHiddenField();
-    }
+        function syncHiddenField() {
+            var data = [];
+            for (var i = 0; i < legs.length; i++) {
+                var leg = legs[i];
+                var typeEl = document.getElementById('type_' + leg.id);
+                var strikeEl = document.getElementById('strike_' + leg.id);
+                var qtyEl = document.getElementById('qty_' + leg.id);
 
-    function updateLeg(id) {
-        for (var i = 0; i < legs.length; i++) {
-            if (legs[i].id === id) {
-                var typeEl = document.getElementById('type_' + id);
-                var strikeEl = document.getElementById('strike_' + id);
-                var qtyEl = document.getElementById('qty_' + id);
-                if (typeEl) legs[i].type = typeEl.value;
-                if (strikeEl) legs[i].strike = parseFloat(strikeEl.value) || 0;
-                if (qtyEl) legs[i].quantity = parseInt(qtyEl.value) || 0;
-                break;
+                data.push({
+                    option_type: (typeEl ? typeEl.value : leg.type) === 'call' ? 'Call' : 'Put',
+                    strike: strikeEl ? parseFloat(strikeEl.value) || leg.strike : leg.strike,
+                    quantity: qtyEl ? parseInt(qtyEl.value) || leg.quantity : leg.quantity,
+                });
+            }
+            document.getElementById('legs_json').value = JSON.stringify(data);
+        }
+
+        // ── Presets ────────────────────────────────────────────────────────────
+        function applyPreset(name) {
+            var s = getSpot();
+            legs = [];
+            legIdCounter = 0;
+
+            switch (name) {
+                case 'bull_call':
+                    addLeg('call', Math.round(s * 0.95), 1);
+                    addLeg('call', Math.round(s * 1.05), -1);
+                    break;
+                case 'bear_put':
+                    addLeg('put', Math.round(s * 1.05), 1);
+                    addLeg('put', Math.round(s * 0.95), -1);
+                    break;
+                case 'straddle':
+                    addLeg('call', Math.round(s), 1);
+                    addLeg('put', Math.round(s), 1);
+                    break;
+                case 'strangle':
+                    addLeg('call', Math.round(s * 1.05), 1);
+                    addLeg('put', Math.round(s * 0.95), 1);
+                    break;
+                case 'butterfly':
+                    addLeg('call', Math.round(s * 0.90), 1);
+                    addLeg('call', Math.round(s), -2);
+                    addLeg('call', Math.round(s * 1.10), 1);
+                    break;
+                case 'iron_condor':
+                    addLeg('put', Math.round(s * 0.85), 1);
+                    addLeg('put', Math.round(s * 0.95), -1);
+                    addLeg('call', Math.round(s * 1.05), -1);
+                    addLeg('call', Math.round(s * 1.15), 1);
+                    break;
             }
         }
-        syncHiddenField();
-    }
 
-    function syncHiddenField() {
-        var data = [];
-        for (var i = 0; i < legs.length; i++) {
-            var leg = legs[i];
-            var typeEl = document.getElementById('type_' + leg.id);
-            var strikeEl = document.getElementById('strike_' + leg.id);
-            var qtyEl = document.getElementById('qty_' + leg.id);
+        // ── Reset ──────────────────────────────────────────────────────────────
+        function resetAll() {
+            document.getElementById('sValue').textContent = '100.00';
+            document.getElementById('tValue').textContent = '0.50';
+            document.getElementById('rValue').textContent = '0.0500';
+            document.getElementById('sigmaValue').textContent = '0.2000';
+            document.getElementById('pointsValue').textContent = '100';
 
-            data.push({
-                option_type: (typeEl ? typeEl.value : leg.type) === 'call' ? 'Call' : 'Put',
-                strike: strikeEl ? parseFloat(strikeEl.value) || leg.strike : leg.strike,
-                quantity: qtyEl ? parseInt(qtyEl.value) || leg.quantity : leg.quantity,
-            });
+            document.getElementById('s').value = '100';
+            document.getElementById('t').value = '0.50';
+            document.getElementById('r').value = '0.05';
+            document.getElementById('sigma').value = '0.20';
+            document.getElementById('num_points').value = '100';
+
+            legs = [];
+            legIdCounter = 0;
+            renderLegs();
         }
-        document.getElementById('legs_json').value = JSON.stringify(data);
-    }
 
-    // ── Presets ────────────────────────────────────────────────────────────
-    function applyPreset(name) {
-        var s = getSpot();
-        legs = [];
-        legIdCounter = 0;
+        // ── Sync before HTMX submit ───────────────────────────────────────────
+        document.addEventListener('htmx:configRequest', function (evt) {
+            if (evt.detail.path === '/analyze-strategy') {
+                syncHiddenField();
+            }
+        });
 
-        switch (name) {
-            case 'bull_call':
-                addLeg('call', Math.round(s * 0.95), 1);
-                addLeg('call', Math.round(s * 1.05), -1);
-                break;
-            case 'bear_put':
-                addLeg('put', Math.round(s * 1.05), 1);
-                addLeg('put', Math.round(s * 0.95), -1);
-                break;
-            case 'straddle':
-                addLeg('call', Math.round(s), 1);
-                addLeg('put', Math.round(s), 1);
-                break;
-            case 'strangle':
-                addLeg('call', Math.round(s * 1.05), 1);
-                addLeg('put', Math.round(s * 0.95), 1);
-                break;
-            case 'butterfly':
-                addLeg('call', Math.round(s * 0.90), 1);
-                addLeg('call', Math.round(s), -2);
-                addLeg('call', Math.round(s * 1.10), 1);
-                break;
-            case 'iron_condor':
-                addLeg('put', Math.round(s * 0.85), 1);
-                addLeg('put', Math.round(s * 0.95), -1);
-                addLeg('call', Math.round(s * 1.05), -1);
-                addLeg('call', Math.round(s * 1.15), 1);
-                break;
-        }
-    }
-
-    // ── Reset ──────────────────────────────────────────────────────────────
-    function resetAll() {
-        document.getElementById('sValue').textContent = '100.00';
-        document.getElementById('tValue').textContent = '0.50';
-        document.getElementById('rValue').textContent = '0.0500';
-        document.getElementById('sigmaValue').textContent = '0.2000';
-        document.getElementById('pointsValue').textContent = '100';
-
-        document.getElementById('s').value = '100';
-        document.getElementById('t').value = '0.50';
-        document.getElementById('r').value = '0.05';
-        document.getElementById('sigma').value = '0.20';
-        document.getElementById('num_points').value = '100';
-
-        legs = [];
-        legIdCounter = 0;
-        renderLegs();
-    }
-
-    // ── Sync before HTMX submit ───────────────────────────────────────────
-    document.addEventListener('htmx:configRequest', function(evt) {
-        if (evt.detail.path === '/analyze-strategy') {
-            syncHiddenField();
-        }
-    });
-
-    // ── Auto-load with a default straddle ─────────────────────────────────
-    document.addEventListener('DOMContentLoaded', function() {
-        applyPreset('straddle');
-        setTimeout(function() {
-            var form = document.getElementById('strategy-form');
-            if (form) htmx.trigger(form, 'submit');
-        }, 500);
-    });
-</script>
+        // ── Auto-load with a default straddle ─────────────────────────────────
+        document.addEventListener('DOMContentLoaded', function () {
+            applyPreset('straddle');
+            setTimeout(function () {
+                var form = document.getElementById('strategy-form');
+                if (form) htmx.trigger(form, 'submit');
+            }, 500);
+        });
+    </script>
 </body>
+
 </html>

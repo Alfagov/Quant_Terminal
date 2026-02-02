@@ -1,3 +1,9 @@
+use crate::brownian_motion::SimulationResult;
+use crate::charts::{Dataset, create_dataset, create_dataset_with_dash, render_chart};
+use crate::{
+    avellaneda_stoikov, binomial_poisson, black_scholes, bonds, brownian_motion, market_maker,
+    option_strategies,
+};
 use askama::Template;
 use axum::Form;
 use axum::http::StatusCode;
@@ -7,9 +13,6 @@ use serde::{Deserialize, Serialize};
 use statrs::distribution::Normal;
 use tokio::task::JoinError;
 use validator::Validate;
-use crate::charts::{create_dataset, create_dataset_with_dash, render_chart, Dataset};
-use crate::{binomial_poisson, black_scholes, bonds, brownian_motion, market_maker, option_strategies};
-use crate::brownian_motion::SimulationResult;
 
 pub enum AppError {
     ValidationError(String),
@@ -228,6 +231,10 @@ pub async fn serve_bonds() -> Result<Html<String>, AppError> {
     serve_static_file("bonds.html").await
 }
 
+pub async fn serve_avellaneda_stoikov() -> Result<Html<String>, AppError> {
+    serve_static_file("avellaneda-stoikov.html").await
+}
+
 async fn serve_static_file(filename: &str) -> Result<Html<String>, AppError> {
     let path = format!("static/{}", filename);
     tokio::fs::read_to_string(&path)
@@ -258,7 +265,6 @@ pub async fn simulate_black_scholes(
 
     let norm = Normal::new(0.0, 1.0).unwrap();
 
-
     let params = black_scholes::Params {
         s: form.s,
         k: form.k,
@@ -283,7 +289,7 @@ pub async fn simulate_black_scholes(
         let surfaces = black_scholes::generate_surfaces(&params, num_points);
         (pr, gs, surfaces)
     })
-        .await?;
+    .await?;
 
     // Compute display values
     let intrinsic = match option_type {
@@ -318,8 +324,8 @@ pub async fn simulate_black_scholes(
 
     // d1, d2 for display
     let sigma_sqrt_t = form.sigma * form.t.sqrt();
-    let d1_val = ((form.s / form.k).ln() + (form.r + 0.5 * form.sigma * form.sigma) * form.t)
-        / sigma_sqrt_t;
+    let d1_val =
+        ((form.s / form.k).ln() + (form.r + 0.5 * form.sigma * form.sigma) * form.t) / sigma_sqrt_t;
     let d2_val = d1_val - sigma_sqrt_t;
 
     // Φ(d) approximation for display
@@ -339,8 +345,7 @@ pub async fn simulate_black_scholes(
             let t3 = t2 * t;
             let t4 = t3 * t;
             let t5 = t4 * t;
-            let y = 1.0
-                - (a1 * t + a2 * t2 + a3 * t3 + a4 * t4 + a5 * t5) * (-x * x).exp();
+            let y = 1.0 - (a1 * t + a2 * t2 + a3 * t3 + a4 * t4 + a5 * t5) * (-x * x).exp();
             sign * y
         }
         0.5 * (1.0 + erf_inner(x / SQRT_2))
@@ -608,9 +613,7 @@ pub struct GlostenForm {
     true_state_h: Option<String>,
 }
 
-pub async fn simulate_glosten(
-    Form(form): Form<GlostenForm>,
-) -> Result<Html<String>, AppError> {
+pub async fn simulate_glosten(Form(form): Form<GlostenForm>) -> Result<Html<String>, AppError> {
     // Parse checkbox
     let true_state_is_high = form.true_state_h.as_deref() == Some("on");
 
@@ -636,7 +639,8 @@ pub async fn simulate_glosten(
     let rounds = tokio::task::spawn_blocking(move || {
         let mut sim = market_maker::Simulation::new(params.seed);
         return sim.run(&params);
-    }).await?;
+    })
+    .await?;
 
     // Calculate metrics
     let (informed_pnl, noise_pnl) = market_maker::cumulative_pnl(&rounds);
@@ -686,7 +690,7 @@ pub async fn simulate_glosten(
         } else {
             "text-orange-600"
         }
-            .to_string(),
+        .to_string(),
         final_belief: format!("{:.3}", final_belief),
         initial_belief: format!("{:.2}", params.prior_h),
         informed_pnl: format!("{:.2}", informed_pnl_final),
@@ -699,7 +703,7 @@ pub async fn simulate_glosten(
         } else {
             "text-orange-600"
         }
-            .to_string(),
+        .to_string(),
     };
 
     let stats_html = stats_template.render()?;
@@ -713,7 +717,14 @@ pub async fn simulate_glosten(
             vec![
                 create_dataset("Bid", &bids, "#ef4444", "rgba(239, 68, 68, 0.0)", 2, false),
                 create_dataset("Ask", &asks, "#10b981", "rgba(16, 185, 129, 0.0)", 2, false),
-                create_dataset("Mid Price", &mids, "#3b82f6", "rgba(59, 130, 246, 0.1)", 3, true),
+                create_dataset(
+                    "Mid Price",
+                    &mids,
+                    "#3b82f6",
+                    "rgba(59, 130, 246, 0.1)",
+                    3,
+                    true,
+                ),
                 create_dataset_with_dash(
                     "True Value",
                     &vec![true_value; time_steps.len()],
@@ -861,7 +872,8 @@ pub async fn simulate_binomial_poisson(
         let metrics = binomial_poisson::calculate_metrics(&results);
 
         (results, metrics)
-    }).await?;
+    })
+    .await?;
 
     let k_values: Vec<usize> = results.iter().map(|r| r.k).collect();
     let binomial_probs: Vec<f64> = results.iter().map(|r| r.binomial_prob).collect();
@@ -937,7 +949,8 @@ pub async fn simulate_binomial_poisson(
             "k (Number of Successes)",
             "Absolute Error",
             false,
-        )?];
+        )?,
+    ];
     let result_template = SimulationResultsTemplate {
         stats_html,
         charts,
@@ -997,8 +1010,8 @@ pub async fn analyze_option_strategy(
 
     params.validate().map_err(AppError::ValidationError)?;
 
-    let result = tokio::task::spawn_blocking(move || option_strategies::analyze_strategy(&params))
-        .await?;
+    let result =
+        tokio::task::spawn_blocking(move || option_strategies::analyze_strategy(&params)).await?;
 
     // Build per-leg display data
     let legs_display: Vec<LegDisplay> = legs
@@ -1030,7 +1043,7 @@ pub async fn analyze_option_strategy(
         } else {
             "text-emerald-400"
         }
-            .to_string(),
+        .to_string(),
         premium_label: if premium_is_debit { "DEBIT" } else { "CREDIT" }.to_string(),
         max_profit: if result.max_profit > 1e6 {
             "Unlimited".to_string()
@@ -1265,8 +1278,7 @@ pub async fn simulate_brownian_motion(
         .validate_limits()
         .map_err(AppError::ValidationError)?;
 
-    let result = tokio::task::spawn_blocking(move || brownian_motion::run(&params))
-        .await?;
+    let result = tokio::task::spawn_blocking(move || brownian_motion::run(&params)).await?;
 
     // Generate stats
     let motion_type_str = match motion_type {
@@ -1323,7 +1335,9 @@ pub async fn simulate_brownian_motion(
         .enumerate()
         .map(|(i, path)| {
             let color_idx = i % 6;
-            let colors = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899"];
+            let colors = [
+                "#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899",
+            ];
             create_dataset(
                 &format!("Path {}", i + 1),
                 &path.values,
@@ -1344,13 +1358,10 @@ pub async fn simulate_brownian_motion(
     let (mean_path, (upper_ci, lower_ci)): (Vec<f64>, (Vec<f64>, Vec<f64>)) = (0..num_time_steps)
         .into_par_iter()
         .map(|i| {
-            let (sum, sum_sq) = result
-                .paths
-                .iter()
-                .fold((0.0_f64, 0.0_f64), |(s, sq), p| {
-                    let v = p.values.get(i).copied().unwrap_or(0.0);
-                    (s + v, sq + v * v)
-                });
+            let (sum, sum_sq) = result.paths.iter().fold((0.0_f64, 0.0_f64), |(s, sq), p| {
+                let v = p.values.get(i).copied().unwrap_or(0.0);
+                (s + v, sq + v * v)
+            });
             let mean = sum * inv_n;
             // Var(X) = E[X²] - E[X]² (computational formula, single pass)
             let variance = (sum_sq * inv_n - mean * mean).max(0.0);
@@ -1418,21 +1429,19 @@ pub async fn simulate_brownian_motion(
         brownian_motion::MotionType::Geometric => "Price ($)",
     };
 
-    let mut charts = vec![
-        render_chart(
-            "pathsChart",
-            &format!(
-                "Brownian Motion Paths ({} of {} shown)",
-                paths_to_show.len().min(10),
-                params.num_paths
-            ),
-            &time_labels,
-            path_datasets,
-            "Time Step",
-            y_label,
-            false,
-        )?,
-    ];
+    let mut charts = vec![render_chart(
+        "pathsChart",
+        &format!(
+            "Brownian Motion Paths ({} of {} shown)",
+            paths_to_show.len().min(10),
+            params.num_paths
+        ),
+        &time_labels,
+        path_datasets,
+        "Time Step",
+        y_label,
+        false,
+    )?];
 
     // Final value distribution
     let (bin_centers, counts) = brownian_motion::final_value_distribution(&result, 30);
@@ -1547,14 +1556,14 @@ struct BondInput {
     coupon_interval: f64,
 }
 
-pub async fn analyze_bonds(
-    Form(form): Form<BondForm>,
-) -> Result<Html<String>, AppError> {
+pub async fn analyze_bonds(Form(form): Form<BondForm>) -> Result<Html<String>, AppError> {
     let bond_inputs: Vec<BondInput> = serde_json::from_str(&form.bonds_json)
         .map_err(|e| AppError::ValidationError(format!("Invalid bonds data: {}", e)))?;
 
     if bond_inputs.is_empty() {
-        return Err(AppError::ValidationError("At least one bond is required".to_string()));
+        return Err(AppError::ValidationError(
+            "At least one bond is required".to_string(),
+        ));
     }
 
     let num_points = form.num_points.clamp(20, 300);
@@ -1570,12 +1579,14 @@ pub async fn analyze_bonds(
         })
         .collect();
 
-    let result = tokio::task::spawn_blocking(move || {
-        bonds::analyze_portfolio(&bond_list, num_points)
-    }).await?;
+    let result =
+        tokio::task::spawn_blocking(move || bonds::analyze_portfolio(&bond_list, num_points))
+            .await?;
 
     // Build per-bond display
-    let bonds_display: Vec<BondDisplay> = result.bond_analyses.iter()
+    let bonds_display: Vec<BondDisplay> = result
+        .bond_analyses
+        .iter()
         .enumerate()
         .map(|(i, a)| BondDisplay {
             index: i + 1,
@@ -1599,9 +1610,7 @@ pub async fn analyze_bonds(
 
     let stats_html = stats_template.render()?;
 
-    let shift_labels: Vec<i32> = result.yield_shifts_bps.iter()
-        .map(|b| *b as i32)
-        .collect();
+    let shift_labels: Vec<i32> = result.yield_shifts_bps.iter().map(|b| *b as i32).collect();
 
     // Chart 1: Price Change vs Yield Shift
     let chart1 = render_chart(
@@ -1642,8 +1651,12 @@ pub async fn analyze_bonds(
     )?;
 
     // Chart 2: Bond Price vs YTM (per-bond + portfolio total)
-    let colors = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
-    let mut price_datasets: Vec<Dataset> = result.bond_analyses.iter()
+    let colors = [
+        "#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16",
+    ];
+    let mut price_datasets: Vec<Dataset> = result
+        .bond_analyses
+        .iter()
         .enumerate()
         .map(|(i, a)| {
             let color = colors[i % colors.len()];
@@ -1660,7 +1673,9 @@ pub async fn analyze_bonds(
 
     let portfolio_abs_prices: Vec<f64> = (0..num_points)
         .map(|i| {
-            result.bond_analyses.iter()
+            result
+                .bond_analyses
+                .iter()
                 .map(|a| a.absolute_prices[i])
                 .sum()
         })
@@ -1750,5 +1765,174 @@ pub async fn analyze_bonds(
     };
 
     let html = bond_result.render()?;
+    Ok(Html(html))
+}
+
+// Avellaneda-Stoikov handler
+#[derive(Debug, Deserialize)]
+pub struct AvellanedaForm {
+    gamma: f64,
+    sigma: f64,
+    drift: f64,
+    t: f64,
+    k: f64,
+    a: f64,
+    steps: usize,
+    s0: f64,
+}
+
+#[derive(Template)]
+#[template(path = "avellaneda_stats.html")]
+pub struct AvellanedaStatsTemplate {
+    pub final_pnl: String,
+    pub pnl_class: String,
+    pub final_inventory: i32,
+    pub inventory_class: String,
+    pub sharpe: String,
+    pub total_steps: usize,
+}
+
+pub async fn simulate_avellaneda(
+    Form(form): Form<AvellanedaForm>,
+) -> Result<Html<String>, AppError> {
+    let params = avellaneda_stoikov::Params {
+        gamma: form.gamma,
+        sigma: form.sigma,
+        drift: form.drift,
+        t: form.t,
+        k: form.k,
+        a: form.a,
+        steps: form.steps,
+        s0: form.s0,
+    };
+
+    params
+        .validate()
+        .map_err(|e| AppError::ValidationError(e.to_string()))?;
+
+    let result = tokio::task::spawn_blocking(move || avellaneda_stoikov::simulate(&params)).await?;
+
+    let pnl_class = if result.final_pnl >= 0.0 {
+        "text-emerald-400"
+    } else {
+        "text-red-400"
+    };
+
+    let inv = *result.inventory.last().unwrap_or(&0);
+    let inventory_class = if inv.abs() < 5 {
+        "text-emerald-400"
+    } else {
+        "text-orange-400"
+    };
+
+    let stats_template = AvellanedaStatsTemplate {
+        final_pnl: format!("${:.2}", result.final_pnl),
+        pnl_class: pnl_class.to_string(),
+        final_inventory: inv,
+        inventory_class: inventory_class.to_string(),
+        sharpe: "N/A".to_string(),
+        total_steps: params.steps,
+    };
+
+    let stats_html = stats_template.render()?;
+
+    let time_labels: Vec<String> = result
+        .time_steps
+        .iter()
+        .map(|t| format!("{:.2}", t))
+        .collect();
+
+    let charts = vec![
+        render_chart(
+            "priceChart",
+            "Mid Price, Bid & Ask",
+            &time_labels,
+            vec![
+                create_dataset(
+                    "Mid Price",
+                    &result.mid_prices,
+                    "#3b82f6",
+                    "rgba(59, 130, 246, 0.1)",
+                    2,
+                    false,
+                ),
+                create_dataset(
+                    "Bid",
+                    &result.bid_prices,
+                    "#ef4444",
+                    "rgba(0,0,0,0)",
+                    1,
+                    false,
+                ),
+                create_dataset(
+                    "Ask",
+                    &result.ask_prices,
+                    "#10b981",
+                    "rgba(0,0,0,0)",
+                    1,
+                    false,
+                ),
+            ],
+            "Time",
+            "Price ($)",
+            true,
+        )?,
+        render_chart(
+            "inventoryChart",
+            "Inventory (q) Over Time",
+            &time_labels,
+            vec![
+                create_dataset(
+                    "Inventory",
+                    &result
+                        .inventory
+                        .iter()
+                        .map(|&x| x as f64)
+                        .collect::<Vec<_>>(),
+                    "#8b5cf6",
+                    "rgba(139, 92, 246, 0.1)",
+                    2,
+                    true,
+                ),
+                create_dataset_with_dash(
+                    "Zero",
+                    &vec![0.0; time_labels.len()],
+                    "#94a3b8",
+                    "rgba(0,0,0,0)",
+                    1,
+                    false,
+                    vec![5, 5],
+                ),
+            ],
+            "Time",
+            "Inventory",
+            false,
+        )?,
+        render_chart(
+            "wealthChart",
+            "Wealth (PnL) Over Time",
+            &time_labels,
+            vec![create_dataset(
+                "Wealth",
+                &result.wealth,
+                "#f59e0b",
+                "rgba(245, 158, 11, 0.1)",
+                2,
+                true,
+            )],
+            "Time",
+            "Wealth ($)",
+            true,
+        )?,
+    ];
+
+    let result_template = SimulationResultsTemplate {
+        stats_html,
+        charts,
+        greeks_charts: vec![],
+        greeks_charts_label: String::new(),
+    };
+
+    let html = result_template.render()?;
     Ok(Html(html))
 }

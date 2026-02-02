@@ -1,0 +1,31 @@
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full animate-fade-in">
+    <!-- Final PnL Card -->
+    <div class="glass-panel p-4 border border-slate-700 relative group hover:border-blue-500/30 transition-all">
+        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-2">
+            > Final PnL
+        </div>
+        <div class="text-2xl font-mono font-light {{ pnl_class }}">
+            {{ final_pnl }}
+        </div>
+    </div>
+
+    <!-- Final Inventory Card -->
+    <div class="glass-panel p-4 border border-slate-700 relative group hover:border-purple-500/30 transition-all">
+        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-2">
+            > Final Inventory
+        </div>
+        <div class="text-2xl font-mono font-light {{ inventory_class }}">
+            {{ final_inventory }} units
+        </div>
+    </div>
+
+    <!-- Steps Card -->
+    <div class="glass-panel p-4 border border-slate-700 relative group hover:border-teal-500/30 transition-all">
+        <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-2">
+            > Steps Simulated
+        </div>
+        <div class="text-2xl text-slate-100 font-mono font-light">
+            {{ total_steps }}
+        </div>
+    </div>
+</div>
